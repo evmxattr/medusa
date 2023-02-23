@@ -13,6 +13,7 @@ from libraries.natives import *
 from libraries.libadb import *
 from libraries.Questions import *
 from libraries.Modules import *
+from pick import pick
 
 RED     = "\033[1;31m"
 BLUE    = "\033[1;34m"
@@ -376,7 +377,7 @@ class Parser(cmd2.Cmd):
         except Exception as e:
             print(e) 
             print("[i] Usage: export filename")
-
+    
 
     def do_man(self,line) -> None:
         """
@@ -399,6 +400,7 @@ class Parser(cmd2.Cmd):
                         - show snippets             : Display available snippets of frida scripts
                         - show all                  : Show all available modules
                         - import [snippet]          : Import a snippet to the scratchpad
+                        - info [module name]        : Display info about a module
                         - rem [module name]         : Remove a module from the list that will be loaded
                         - swap old_index new_index  : Change the order of modules in the compiled script
                         - reset                     : Remove all modules from the list that will be loaded
@@ -584,6 +586,18 @@ class Parser(cmd2.Cmd):
             print("\nSnippet has been added to the" + GREEN + " scratchpad" + RESET + " run 'compile' to include it in your final script or 'pad' to edit it")
         except Exception as e:
             print(e)
+    
+    def do_info(self, mod) -> None:
+        """
+        Provides information about a module.
+        Usage: 
+        info  'module name' 
+        """
+        for m in self.modManager.available:
+            if m.Name == mod:
+                print(m.Help)
+
+        return
 
     def do_libs(self, line) -> None:
         """
@@ -697,6 +711,39 @@ class Parser(cmd2.Cmd):
         """
         self.native_handler = nativeHandler(self.device)
         self.native_handler.memops(line)
+
+
+    def do_memmap(self,line) -> None:
+        """
+        READ process memory
+        Usage:
+        Make sure the application is running and then type:
+        memmap package_name 
+        """
+        try:
+
+            pkg = line.split(' ')[0]
+            pid = os.popen("adb -s {} shell pidof {}".format(self.device.id,pkg)).read().strip()
+            if pid == "":
+                print("Can't find  pid. Is the application running ?")
+                return
+            maps = os.popen("""adb -s {} shell 'echo "cat /proc/{}/maps" | su'""".format(self.device.id, pid)).read().strip().split('\n')
+            title = "Please chose the memory address range: "
+            option, index = pick(maps,title,indicator="=>",default_index=0)
+            print("Selected:")
+            click.echo(click.style(option,bg='blue', fg='white'))
+
+            range1 = int(option.split(' ')[0].split('-')[0],16)
+            range2 = int(option.split(' ')[0].split('-')[1],16)
+            sz = range2 - range1
+            print('Starting addres: {}, size: {}'.format(hex(range1),range2-range1))
+
+            self.native_handler = nativeHandler(self.device)
+            self.native_handler.memraw(pkg + ' ' + hex(range1) + ' ' + str(sz))
+            
+        except Exception as e:
+            print(e)
+            
 
     def do_pad(self, line) -> None:
         """
@@ -993,6 +1040,9 @@ class Parser(cmd2.Cmd):
 
     def complete_memops(self, text, line, begidx, endidx) -> list:
         return self.complete_list(text, line, begidx, endidx)
+    
+    def complete_memmap(self, text, line, begidx, endidx) -> list:
+        return self.complete_list(text, line, begidx, endidx)
 
     def complete_rem(self, text, line, begidx, endidx) -> list:
         return [mod.Name for mod in self.modManager.staged if mod.Name.startswith(text)]
@@ -1014,8 +1064,8 @@ class Parser(cmd2.Cmd):
         return [mod.Name for mod in self.modManager.available if mod.Name.startswith(text)]
 
     # Use and help are always in sync
-    def complete_help(self, text, line, begidx, endidx) -> list:
-        return self.complete_use(text, line, begidx, endidx)
+    def complete_info(self, text, line, begidx, endidx) -> list:
+        return [mod.Name for mod in self.modManager.available if mod.Name.startswith(text)]
 
 ###################################################### complete_ defs end ############################################################
 
