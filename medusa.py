@@ -1,12 +1,7 @@
 #!/usr/bin/env python3
-import subprocess
-import platform
-import cmd2
-import os, sys
-import readline
-import time
-import frida
-import click
+import subprocess, platform, os, sys, readline, time, argparse,requests,re
+from urllib.parse import urlparse
+import cmd2, click, frida
 from libraries.dumper import dump_pkg
 from google_trans_new import google_translator  
 from libraries.natives import *
@@ -55,41 +50,39 @@ class Parser(cmd2.Cmd):
 
     def refreshPackages(self):
         self.packages = []
-        for line in os.popen('adb -s {} shell pm list packages -3'.format(self.device.id)):
+        for line in os.popen('adb -s {} shell pm list packages'.format(self.device.id)):
             self.packages.append(line.split(':')[1].strip('\n'))
 
     def preloop(self):
         self.do_reload("dummy")
-        # for root, directories, filenames in os.walk(os.path.join(self.base_directory, 'modules')):
-        #     for filename in filenames:
-        #         if filename.endswith('.med'):
-        #             self.modManager.add(os.path.join(root, filename))
+    
+        parser = argparse.ArgumentParser(
+                            prog = 'Medusa',
+                            description = 'An extensible and modularized framework that automates processes and techniques practiced during the dynamic analysis of Android Applications.')
+        parser.add_argument('-r','--recipe', help='Use this option to load a session/recipe')
+        args = parser.parse_args()
 
-        # for root, directories, filenames in os.walk(os.path.join(self.base_directory, 'snippets')):
-        #     for filename in sorted(filenames):
-        #         if filename.endswith('.js'):
-        #             filepath = os.path.join(root, filename)
-        #             self.snippets.append(filepath.split(os.path.sep)[-1].split('.')[0])
-        try:
-            if len(sys.argv) > 1:
-                data = ''
-                if '-r' in sys.argv[1]:
-                    print('[+] Loading a recipe....')
-                    with open(sys.argv[2], 'r') as file:
-                        for line in file:
-                            if line.startswith('MODULE'):
-                                module = line[7:-1]
-                                print('- Loading {}'.format(module))
-                                self.modManager.stage_verbadim(module)
-                            else:
-                                data += line
-                    self.modified = True
-                if data != '':
-                    print("[+] Writing to scratchpad...")
-                    self.edit_scratchpad(data)
+        if args.recipe:
+            self.write_recipe(args.recipe)
+
+            # if len(sys.argv) > 1:
+            #     data = ''
+            #     if '-r' in sys.argv[1]:
+            #         print('[+] Loading a recipe....')
+            #         with open(sys.argv[2], 'r') as file:
+            #             for line in file:
+            #                 if line.startswith('MODULE'):
+            #                     module = line[7:-1]
+            #                     print('- Loading {}'.format(module))
+            #                     self.modManager.stage_verbadim(module)
+            #                 else:
+            #                     data += line
+            #         self.modified = True
+            #     if data != '':
+            #         print("[+] Writing to scratchpad...")
+            #         self.edit_scratchpad(data)
                         
-        except Exception as e:
-            print(e)
+
 
         click.secho(""" 
                                                                                                                         
@@ -130,58 +123,6 @@ class Parser(cmd2.Cmd):
 
 
 ###################################################### do_ defs start ############################################################
-    def do_get(self,line):
-        """
-        Print the value of fields of class instances
-        Usage: get package_name full.path.to.class.field
-        """
-        try:
-            package_name = line.split(' ')[0]
-            class_field_path = line.split(' ')[1]
-            field = class_field_path.split('.')[-1]
-            clazz = '.'.join(class_field_path.split('.')[:-1])
-            if field == '*':
-                codeJs = """
-                Java.perform(function() { 
-                    try {
-                        var jClass = Java.use('"""+clazz+"""');
-                        var _fields = jClass.class.getFields().map(f => {
-                        return f.toString()
-                        })  
-                        Java.choose('"""+clazz+"""', {
-                        onMatch: function(instance) {
-                            for(var i = 0; i < _fields.length; i++){
-                            var field = _fields[i].substring(_fields[i].lastIndexOf(".") + 1);                
-                            console.log('var '+field+ ' ='+JSON.stringify(instance[field].value))
-                            }
-                        }, onComplete: function() {
-                        }
-                        })
-                    }
-                        catch(e){console.log(e)}
-                    });
-                    """
-        
-            else:
-                codeJs = "Java.perform(function() { try { Java.choose('"+clazz+"',{"
-                codeJs+="onMatch: function(instance) {"
-                codeJs+= "console.log('Current field value of '+instance+ ' is:'+JSON.stringify(instance."+field+'.value))'
-                codeJs+="}, onComplete: function() { }});} catch (e){console.log(e)}})"
-        
-            self.detached = False
-
-            session = self.frida_session_handler(self.device,False,package_name)
-            if session is None:
-                print("[!] Can't create session for the given package name. Is it running ?")
-
-            script = session.create_script(codeJs)
-            session.on('detached',self.on_detached)
-            script.load()
-            input()
-            if script:
-                script.unload()
-        except Exception as e:
-            print(e)
 
     def do_add(self, mod) -> None:
         """
@@ -197,14 +138,77 @@ class Parser(cmd2.Cmd):
             print("Module file has an incorrect format")
 
     def do_c(self, line) -> None:
-        """
-        Get a local shell (no args)
-        """
+        """Usage: c [shell command]
+        Run a shell command on the local host."""
         subprocess.run(line, shell=True)
+
+    def do_c2check(self, line) -> None:
+        """Usage: c2check [package name]
+        Searches the application's memory for C2 addresses"""      
+        try:
+            pkg = line.split(' ')[0]
+            click.secho('Starting app:'.format(pkg), fg = 'green')
+            os.popen("adb -s {} shell  monkey -p {} -c 'android.intent.category.LAUNCHER 1'".format(self.device.id,pkg)).read()
+            pid = os.popen("adb -s {} shell pidof {}".format(self.device.id,pkg)).read().strip()
+           
+            if pid == "":
+                click.secho("Can't find pid !",fg='red')
+                return
+            elif len(pid.split(' ')) > 1:
+                option, index = pick(pid.split(' '),"More than one processes found running with that name:",indicator="=>",default_index=0)
+                pid = option
+            else:
+                 click.secho('Process pid:{}'.format(pid),fg='green')
+
+            maps = os.popen("""adb -s {} shell 'echo "cat /proc/{}/maps" | su'""".format(self.device.id, pid)).read().split('\n')
+            for linein in maps:
+                if 'dalvik-main space' in linein:
+                    range1 = int(linein.split(' ')[0].split('-')[0],16)
+                    range2 = int(linein.split(' ')[0].split('-')[1],16)
+                    sz = range2 - range1
+                    print('Starting addres: {}, size: {}'.format(hex(range1),range2-range1))
+                    self.native_handler = nativeHandler(self.device)
+                    self.native_handler.memraw(pkg + ' ' + pid + ' ' + hex(range1) + ' ' + str(sz),True)
+
+            hosts = []
+            output = []
+            all_strings=[]
+            script_path = os.path.abspath(__file__)
+            script_dir = os.getcwd()
+            dump_dir = script_dir+os.path.sep+'dump'+os.path.sep+pkg
+            for filename in os.listdir(dump_dir):
+                file_path = os.path.join(dump_dir, filename)
+                if os.path.isfile(file_path):
+                    cmd = "strings {}".format(file_path)
+                    result = subprocess.run(cmd,shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    if result.returncode == 0:
+                        output = result.stdout.decode().strip().split('\n')
+                        for entry in output:
+                            all_strings.append(entry)
+                            if self.is_valid_url(entry):
+                               hosts.append(urlparse(entry).netloc)
+
+            hosts = list(dict.fromkeys(hosts))
+            whitelist = script_dir+os.path.sep+'whitelist.txt'
+            whitelist_urls = []
+            if os.path.isfile(whitelist):
+                with open(whitelist,'r') as file:
+                    whitelist_urls = file.readlines()
+
+            whitelist_urls_strip=[x.strip() for x in whitelist_urls]
+            hosts =[x for x in hosts if not any(y in x for y in whitelist_urls_strip)]
+
+            click.secho('Scanning for web addresses',fg='yellow')
+            self.check_using_vt(hosts,script_dir+os.path.sep+'vt.key')
+            click.secho('Scanning for secrets',fg='yellow')
+            self.scan_for_secrets(list(dict.fromkeys(all_strings)))
+            
+        except Exception as e:
+            print(e) 
 
     def do_cc(self, line) -> None:
         """
-        Get an adb shell (no args)
+        Get an adb shell to the connected device (no args)
         """
         subprocess.run('adb -s {} shell {}'.format(self.device.id, line), shell=True)
 
@@ -216,7 +220,8 @@ class Parser(cmd2.Cmd):
 
     def do_compile(self, line, rs=False) -> None:
         """
-        Compile the current staged modules to a single js frida script (no args)
+        Compile the current staged modules to a single js frida script. Use '-t' to add a delay.
+        compile [-t X], where X is a value in milisec
         """
         try:
             hooks = []
@@ -334,7 +339,7 @@ class Parser(cmd2.Cmd):
                 if '--attach' in line.split(' ')[2]:
                     modules = self.native_handler.getModules(package,False)
                 else:
-                    print("[i] Usage: enumerate package libary [--attach]")
+                    print("[i] Usage: enumerate package library [--attach]")
             else:
                 modules = self.native_handler.getModules(package,True)
 
@@ -345,7 +350,7 @@ class Parser(cmd2.Cmd):
 
         except Exception as e:
             print(e)
-            print("[i] Usage: enumerate package libary [--attach]")
+            print("[i] Usage: enumerate package library [--attach]")
 
     def do_exit(self,line) -> None:
         """
@@ -378,115 +383,192 @@ class Parser(cmd2.Cmd):
             print(e) 
             print("[i] Usage: export filename")
     
+    def do_get(self,line):
+        """
+        Print the current value of a fields of a class instance
+        Usage: get package_name full.path.to.class.field
+        """
+        try:
+            package_name = line.split(' ')[0]
+            class_field_path = line.split(' ')[1]
+            field = class_field_path.split('.')[-1]
+            clazz = '.'.join(class_field_path.split('.')[:-1])
+            if field == '*':
+                codeJs = """
+                Java.perform(function() { 
+                    try {
+                        var jClass = Java.use('"""+clazz+"""');
+                        var _fields = jClass.class.getFields().map(f => {
+                        return f.toString()
+                        })  
+                        Java.choose('"""+clazz+"""', {
+                        onMatch: function(instance) {
+                            for(var i = 0; i < _fields.length; i++){
+                            var field = _fields[i].substring(_fields[i].lastIndexOf(".") + 1);                
+                            console.log('var '+field+ ' ='+JSON.stringify(instance[field].value))
+                            }
+                        }, onComplete: function() {
+                        }
+                        })
+                    }
+                        catch(e){console.log(e)}
+                    });
+                    """
+        
+            else:
+                codeJs = "Java.perform(function() { try { Java.choose('"+clazz+"',{"
+                codeJs+="onMatch: function(instance) {"
+                codeJs+= "console.log('Current field value of '+instance+ ' is:'+JSON.stringify(instance."+field+'.value))'
+                codeJs+="}, onComplete: function() { }});} catch (e){console.log(e)}})"
+        
+            self.detached = False
+
+            session = self.frida_session_handler(self.device,False,package_name)
+            if session is None:
+                print("[!] Can't create session for the given package name. Is it running ?")
+
+            script = session.create_script(codeJs)
+            session.on('detached',self.on_detached)
+            script.load()
+            input()
+            if script:
+                script.unload()
+        except Exception as e:
+            print(e)
 
     def do_man(self,line) -> None:
         """
         Display the manual 
         """
-        if line != '':
-            print('\n' + BLUE + self.modManager.getModule(line).Help + RESET)
-        else:
-            print("""
-                MODULE OPERATIONS:
+        try:
+            print(BOLD+"""
+                Module Stashing / Un-Stashing:
 
-                        - search [keyword]          : Search for a module containing a specific keyword
-                        - man [module name]         : Display help for a module
-                        - add [fullpath]            : Adds the module specified by fullpath to the list of available modules
-                        - snippet [tab]             : Show / display available frida script snippets
-                        - use [module name]         : Select a module to add to the final script
-                        - show mods                 : Show selected modules
-                        - show categories           : Display the available module categories (start here)
-                        - show mods [category]      : Display the available modules for the selected category
-                        - show snippets             : Display available snippets of frida scripts
-                        - show all                  : Show all available modules
+                        - add [fullpath]            : Adds the module, specified by the "fullpath" option, to a 
+                                                      list of stashed modules
+                        - compile [-t X ms]         : Compile the stashed modules. Use -t X to add X ms delay
                         - import [snippet]          : Import a snippet to the scratchpad
                         - info [module name]        : Display info about a module
-                        - rem [module name]         : Remove a module from the list that will be loaded
+                        - rem [module name]         : Remove a module from the stashed ones
+                        - reload                    : Reload all the medusa modules
+                        - reset                     : Remove all modules from the list of the stashed ones
+                        - search [keyword]          : Search for a module containing a specific keyword in its name
+
+                        - show [option]
+                                all                 : Show all available modules
+                                categories          : Display the available module categories
+                                mods                : Show stashed modules
+                                mods [category]     : Display the available modules for the selected category
+                                snippets            : Display available snippets of frida scripts
+
+                        - snippet [tab]             : Show / display available frida script snippets
                         - swap old_index new_index  : Change the order of modules in the compiled script
-                        - reset                     : Remove all modules from the list that will be loaded
-                        - reload                    : Reload all the existing modules
+                        - use [module name]         : Select a module to add to the final script
+
                 ===================================================================================================
 
-                SCRIPT OPERATIONS:
+                Hooking beyond the modules:
 
-                        - export  'filename'        : Save session modules and scripts to 'filename'
-                        - import [tab]              : Import frida script from available snippet
-                        - pad                       : Edit the scratchpad using vi
-                        - jtrace function_path      : Prints the stack trace of a function
-                        - compile [-t X millisec]   : Compile the modules to a frida script, use '-t' to add a load delay 
                         - hook [option]
-                    
-                            -a [class name]         : Set hooks for all the functions of the given class
-                            -f                      : Initiate a dialog for hooking a Java function
-                            -n                      : Initiate a dialog for hooking a native function
-                            -r                      : Reset the hooks setted so far
+                            -a [class name]         : Set hooks for all the methods of the given class
+                            -f                      : Initiate a dialog for hooking a Java method
+                            -n                      : Initiate a dialog for hooking a native method
+                            -r                      : Reset the hooks set so far
+                        - jtrace method_path        : Prints the stack trace of a method (similar to hook -f)
+                        - pad                       : Edit the scratchpad using vim
+                        - import [tab]              : Import a frida script from the snippets folder
+
                 ===================================================================================================
 
-                NATIVE OPERATIONS:
-
-                        - memops package_name lib.so    : READ/WRITE/SEARCH process memory
-                        - strace package_name           : logs system calls, signal deliveries, and changes of process state 
-
-                        - load package_name full_library_path
-                                                        : Manually load a library in order to explore using memops
-                                                          Tip: run "list package_name path" to get the application's
-                                                          directories
-
-                        - libs (-a, -s, -j) package_name [--attach]  
-
-                            -a                          : List ALL loaded libraries
-                            -s                          : List System loaded libraries
-                            -j                          : List Application's Libraries
-                            --attach                    : Attach to the process (Default is spawn) 
-                        - enumerate pkg_name libname [--attach]    
-                        
-                        Enumerate a library's exported functions (e.g. - enumerate com.foo.gr libfoo)
-                ===================================================================================================
-
-                FRIDA SESSION:
+                Starting a session:
 
                         - run        [package name] : Initiate a Frida session and attach to the selected package
                         - run -f     [package name] : Initiate a Frida session and spawn the selected package
                         - run -n     [package num]  : Initiate a Frida session and spawn the 3rd party package 
                                                       number num (listed by "list")
-                        - dump       [package_name] : Dump the requested package name (works for most unpackers)
-                        - loaddevice                : Load or reload a device
-                ====================================================================================================
-                    
-                HELPERS:
 
-                        - type 'text'               : Send a text to the device
-                        - list                      : List 3rd party packages
-                        - list 'package_name' path  : List data/app paths of 3rd party packages 
-                        - status                    : Print Current Package/Libs/Native-Functions
-                        - shell                     : Open an interactive shell
-                        - clear                     : Clear the screen
+                ===================================================================================================
+
+                Working with native libraries:
+
+                        - libs (-a, -s, -j) package_name [--attach]  
+
+                            -a                          : List aLL loaded libraries
+                            -s                          : List system's loaded libraries
+                            -j                          : List application's Libraries
+                            --attach                    : Attach to the process (default is to first run the app) 
+                        
+                        - enumerate pkg_name libname [--attach]    
+                        
+                            Enumerate a library's exported functions (e.g. enumerate com.foo.gr libfoo.so)
+
+                        - load package_name full_library_path
+
+                                                        : Force the application to load a native library 
+                                            
+                ===================================================================================================
+
+                Working with the application's memory:
+
+                        - memops package_name lib.so    : read/write/search/dump a native library
+                        - memmap package_name           : read/dump read or dump a memory region
+
+                ====================================================================================================
+
+                Getting Class and Object snapshots:
+
+                        - describe_java_class full.path.to.class.name   : Log details about the given class
+                        - get package_name full.path.to.class.field     : Get the current value of a field of an 
+                                                                          instnatiated java class. 
+                ====================================================================================================
+
+                Usefull utilities:
+
                         - c [command]               : Run a shell command
                         - cc [command]              : Run a shell command on the mobile device
+                        - clear                     : Clear the screen
+                        - shell                     : Open an interactive shell
+                ----------------------------------------------------------------------------------------------------
+                        - dump [package_name]       : Dump the requested package name (works for most unpackers)
+                        - list                      : List 3rd party packages
+                        - list 'package_name' path  : List data/app paths of 3rd party packages
+                        - loaddevice                : Load or reload a device
+                        - reload [-r recipe]        : Reload the modules. Use -r to load a recipe (see export command)
+                        - status                    : Print Current Package/Libs/Native-Functions
+                        - strace package_name       : logs system calls, signal deliveries, and changes of process state 
+                        - type 'text'               : Send a text to the device
+
                 ==============================================================================================
+                
+                Saving a session:
 
-                        Tip: Use the /modules/scratchpad.med to insert your own hooks and include them to the agent.js 
-                        using the 'compile script' command""")
+                        - export 'filename'         : Save session modules and scripts to 'filename'. 
+                        
+                          (-) To load this file when starting medusa, add the -r option followed by the filename
+                          (-) To load this file while running medusa, type 'reload -r filename'                                      
+"""+RESET)
 
+        except Exception as e:
+            print(e)
 
     def do_hook(self,line) -> None:
         """
-        Hook a function or functions
+        Hook a method or methods
         Usage:
         hook [options] where option can be one of the following:
-            -a [class name]: Set hooks for all the functions of the given class
-            -f              : Initiate a dialog for hooking a Java function
-            -n              : Initiate a dialog for hooking a native function
+            -a [class name]: Set hooks for all the methods of the given class
+            -f              : Initiate a dialog for hooking a Java method
+            -n              : Initiate a dialog for hooking a native method
             -r              : Reset the hooks setted so far
         """
         option = line.split(' ')[0]
         codejs = '\n'
         if '-f' in option:
-            className = input("Enter the full name of the function(s) class: ")
+            className = input("Enter the full name of the method(s) class: ")
             uuid = str(int(time.time()))
 
             codejs = """let hook_"""+uuid+""" = Java.use('""" + className + """');"""
-            functionName = input("Enter a function name (CTRL+C to Exit): ")
+            functionName = input("Enter a method name (CTRL+C to Exit): ")
             enable_backtrace =  Polar('Enable backtrace?', False).ask()
 
             while (True):
@@ -517,8 +599,8 @@ class Parser(cmd2.Cmd):
                     }
                     }
                     """
-                    print('[+] Function: {} hook added !'.format(functionName))
-                    functionName = input("Enter a function name (CTRL+C to Exit): ")
+                    print('[+] Method: {} hook added !'.format(functionName))
+                    functionName = input("Enter a method name (CTRL+C to Exit): ")
 
                 except KeyboardInterrupt:
                     self.edit_scratchpad(codejs, 'a')
@@ -712,7 +794,6 @@ class Parser(cmd2.Cmd):
         self.native_handler = nativeHandler(self.device)
         self.native_handler.memops(line)
 
-
     def do_memmap(self,line) -> None:
         """
         READ process memory
@@ -724,11 +805,16 @@ class Parser(cmd2.Cmd):
 
             pkg = line.split(' ')[0]
             pid = os.popen("adb -s {} shell pidof {}".format(self.device.id,pkg)).read().strip()
+
             if pid == "":
                 print("Can't find  pid. Is the application running ?")
                 return
+            elif len(pid.split(' ')) > 1:
+                option, index = pick(pid.split(' '),"More than one processes found running with that name:",indicator="=>",default_index=0)
+                pid = option
+
             maps = os.popen("""adb -s {} shell 'echo "cat /proc/{}/maps" | su'""".format(self.device.id, pid)).read().strip().split('\n')
-            title = "Please chose the memory address range: "
+            title = "Please choose a memory address range: "
             option, index = pick(maps,title,indicator="=>",default_index=0)
             print("Selected:")
             click.echo(click.style(option,bg='blue', fg='white'))
@@ -739,12 +825,11 @@ class Parser(cmd2.Cmd):
             print('Starting addres: {}, size: {}'.format(hex(range1),range2-range1))
 
             self.native_handler = nativeHandler(self.device)
-            self.native_handler.memraw(pkg + ' ' + hex(range1) + ' ' + str(sz))
+            self.native_handler.memraw(pkg + ' ' + pid + ' ' + hex(range1) + ' ' + str(sz))
             
         except Exception as e:
             print(e)
             
-
     def do_pad(self, line) -> None:
         """
         Manualy edit scratchpad using vi
@@ -760,6 +845,7 @@ class Parser(cmd2.Cmd):
     def do_reload(self,line) -> None:
         """
         Reload the medusa modules (in case of a module edit)
+        Use the -r filename option to load a saved session or recipe 
         """
         print("[i] Loading modules...")
         self.modManager = ModuleManager()
@@ -774,33 +860,12 @@ class Parser(cmd2.Cmd):
                 if filename.endswith('.js'):
                     filepath = os.path.join(root, filename)
                     self.snippets.append(filepath.split(os.path.sep)[-1].split('.')[0])
-        try:
+    
              
-            if "-r" in line.split(' ')[0]:
-                self.modManager.reset()
-                data = ''
-                print('[+] Loading a recipe....')
-                recipe = line.split(' ')[1]
-                if os.path.exists(recipe):
-                    with open(recipe, 'r') as file:
-                        for line in file:
-                            if line.startswith('MODULE'):
-                                module = line[7:-1]
-                                print('- Loading {}'.format(module))
-                                self.modManager.stage_verbadim(module)
-                            else:
-                                data += line
-                    self.modified = True
-                    if data != '':
-                        print("[+] Writing to scratchpad...")
-                        self.edit_scratchpad(data)
-                else:
-                    print("[!] Recipe file was not found !")
-                        
-        except Exception as e:
-            print(e)
-
-        print("[i] Done....")
+        if "-r" in line.split(' ')[0]:
+            self.modManager.reset()
+            self.write_recipe(line.split(' ')[1])
+        print(f"[i] Done....\n[i] Total modules available {self.modManager.get_number_of_modules()}")
 
     def do_rem(self, mod) -> None:
         """
@@ -1010,12 +1075,13 @@ class Parser(cmd2.Cmd):
         self.show_mods()
         self.modified = True
         print()
-
-
-
+        
 ###################################################### do_ defs end ############################################################
 
 ###################################################### complete_ defs start ############################################################
+    def complete_c2check(self, text, line, begidx, endidx) -> list:
+        return self.complete_list(text, line, begidx, endidx)
+    
     def complete_dump(self, text, line, begidx, endidx) -> list:
         return self.complete_list(text, line, begidx, endidx)
     
@@ -1062,14 +1128,42 @@ class Parser(cmd2.Cmd):
 
     def complete_use(self, text, line, begidx, endidx) -> list:
         return [mod.Name for mod in self.modManager.available if mod.Name.startswith(text)]
-
-    # Use and help are always in sync
+    
     def complete_info(self, text, line, begidx, endidx) -> list:
         return [mod.Name for mod in self.modManager.available if mod.Name.startswith(text)]
 
 ###################################################### complete_ defs end ############################################################
 
 ###################################################### implementations start ############################################################
+
+    def check_using_vt(self,hosts,vtkey):
+        vt_address = 'https://www.virustotal.com/api/v3/domains/'
+        if os.path.isfile(vtkey):
+            with open(vtkey,'r') as file:
+                key = file.read()
+        else:
+            click.secho("VT key was not found !", fg='red')
+            return
+        headers = {'x-apikey': key}
+        for host in hosts:
+           # click.secho("Checking {}".format(host),fg='green')
+            response = requests.get(vt_address+host, headers=headers)
+            if response.status_code == 200:
+                json_data = json.loads(response.text)
+                last_analysis_stats = json_data['data']['attributes']['last_analysis_stats']
+                malicious_count = last_analysis_stats['malicious']
+                if int(malicious_count) == 0: 
+                    click.secho("✅ {} ".format(host),fg='green')
+                    #click.secho("Clean".format(malicious_count),fg='yellow')
+                else:
+                    click.secho("❌ {} detected by {} vendors ❗".format(host,malicious_count),bg='white',fg='red')
+                    #click.secho(" Detected by {} vendors:".format(malicious_count),fg='red',bg='white')
+                    for key,value in json_data['data']['attributes']['last_analysis_results'].items():
+                        verdict = json_data['data']['attributes']['last_analysis_results'][key]['category']
+                        if verdict not in ['harmless','undetected']:
+                            print('[🚩] {} ({}) Ref:{}'.format(key,verdict.upper(),'https://www.virustotal.com/gui/domain/'+host))
+            else:
+                click.secho("[?] {} return {}".format(host,response.status_code),fg='blue')
 
     def edit_scratchpad(self, code, mode='w') -> None:
         scratchpad = self.modManager.getModule('scratchpad')
@@ -1080,9 +1174,9 @@ class Parser(cmd2.Cmd):
         else:
             raise Exception('Attempted to open scratchpad in invalid mode {}'.format(mode))
         scratchpad.save()
-        if code != '':
-            self.modManager.stage('scratchpad')
-            self.modified = True
+        #if code != '':
+        self.modManager.stage('scratchpad')
+        self.modified = True
 
     def fill_app_info(self,data) -> None:
         self.app_info = json.loads(data)
@@ -1127,7 +1221,7 @@ class Parser(cmd2.Cmd):
         return frida_session
 
     def hook_native(self) -> None:
-        library = Open('Libary name (e.g.: libnative.so):').ask()
+        library = Open('Library name (e.g.: libnative.so):').ask()
         type_ = Alternative('Imported or exported function?', 'i', 'e').ask()
         function = Open('Function name or offset (e.g.: 0x1234):').ask()
         number_of_args = Numeric('Number of function arguments (0 to disable trace):', lbound=0).ask()
@@ -1189,8 +1283,6 @@ catch (err) {
     onEnter: function(args) {
       console.log();
       colorLog("[--->] Entering Native function: " +" """ + function + '",{ c: Color.Red });' + argread + tracejs + """
-      
-
     },
     onLeave: function(retval) {
 
@@ -1213,6 +1305,13 @@ catch (err) {
         print('\nInstalled packages:\n')
         for i in range(len(self.packages)):
             print('[{}] {}'.format(i, self.packages[i]))
+
+    def is_valid_url(self,url):
+        try:
+            result = urlparse(url)
+            return all([result.scheme, result.netloc])
+        except ValueError:
+            return False
 
     def load_snippet(self, snippet) -> None:
         try:
@@ -1310,11 +1409,13 @@ Apk Directory: {}\n""".format(appname,filesDirectory,cacheDirectory,externalCach
                          print(GREEN + "Script unchanged, nothing to reload ...." + RESET)
                 elif s == '?':
                     print(RESET+"""\nHelp: 
-    'e' to exit the session 
-    'r' to reload the script (use if script changed)
-    'i' to read information about the application
-    't' to trace a function and print the stac trace (e.g. t com.foo.bar.func)
-    '?' to print this message\n"""+RESET)
+    'c'  (c)lear the sreen 
+    'e'  (e)xit the session
+    'r'  (r)eload the script in case it changed
+    'rs' (r)e(s)et the scratchpad
+    'i'  print (i)nformation about the application
+    't'  (t)race a method and print the stack trace (e.g. t com.foo.bar.func)
+    '?'  print this help message\n"""+RESET)
                 elif s == 'i':
                     self.print_app_info()
                 elif s == 'c':
@@ -1349,7 +1450,6 @@ Apk Directory: {}\n""".format(appname,filesDirectory,cacheDirectory,externalCach
             print(e)
         print(RESET)
         
-
     def print_list(self, listName, message) -> None:
         print(GREEN+message+RESET)
         for item in listName:
@@ -1402,6 +1502,51 @@ Apk Directory: {}\n""".format(appname,filesDirectory,cacheDirectory,externalCach
         except Exception as e:
             print(e)
 
+    def scan_for_secrets(self,string_list):
+        try:
+            sigs={}
+            matches = []
+            results = []
+            sig_file = os.getcwd()+os.path.sep+'sigs.json'
+            print(f'Using signature file: {sig_file}')
+
+            if os.path.isfile(sig_file):
+                with open(sig_file,'r') as file:
+                    sigs = json.load(file)
+            
+            for key,pattern in sigs.items():
+                for entry in string_list:
+                    matches = re.findall(pattern,entry)
+                    if matches:
+                        for match in matches:
+                            results.append(f'{key}:{match}')
+            for result in list(dict.fromkeys(results)):
+                print(f'{result}')             
+        except Exception as e:
+            print(e)
+
+    def write_recipe(self,filename) -> None:
+        try:
+            data = ''
+            click.echo(click.style("[+] Loading a recipe....",bg='blue', fg='white'))
+            if os.path.exists(filename):
+                with open(filename, 'r') as file:
+                    for line in file:
+                        if line.startswith('MODULE'):
+                            module = line[7:-1]
+                            click.echo(click.style('\tLoading {}'.format(module), fg='yellow'))
+                            self.modManager.stage_verbadim(module)
+                        else:
+                            data += line
+                self.modified = True
+                if data != '':
+                    click.echo(click.style("[+] Writing to scratchpad...",bg='blue', fg='white'))
+                    self.edit_scratchpad(data)
+            else:
+                click.echo(click.style("[!] Recipe not found !",bg='red', fg='white'))
+        except Exception as e:
+            print(e)
+        
 if __name__ == '__main__':
     if 'libedit' in readline.__doc__:
         readline.parse_and_bind("bind ^I rl_complete")
