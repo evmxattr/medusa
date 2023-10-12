@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import subprocess, platform, os, sys, readline, time, argparse,requests,re
 from urllib.parse import urlparse
-import cmd2, click, frida
+import cmd2, click, frida,random,yaml
 from libraries.dumper import dump_pkg
 from google_trans_new import google_translator  
 from libraries.natives import *
@@ -29,7 +29,7 @@ class Parser(cmd2.Cmd):
     app_libraries = []
     app_info = {}
     show_commands = ['mods', 'categories', 'all', 'snippets']
-    prompt = BLUE + 'medusa> ' + RESET
+    prompt = BLUE + 'medusa➤' + RESET
     device = None
     modified = False
     translator = google_translator()  
@@ -41,16 +41,31 @@ class Parser(cmd2.Cmd):
     currentPackage = None
     libname = None
     modManager = ModuleManager()
+    package_range = ''
 
     def __init__(self):
         super().__init__(
             allow_cli_args=False
         )
 
+    def refreshPackages(self, option=""):
 
-    def refreshPackages(self):
+    #   -a: all known packages (but excluding APEXes)
+    #   -s: filter to only show system packages
+    #   -3: filter to only show third party packages
+
+        if option == '-a':
+            self.package_range = '- Installed applications (all, excluding APEXs)'
+        elif option == '-s':
+            self.package_range = '- System / Preinstalled applicatons'
+        elif option == '-3':
+            self.package_range = '- 3rd party installed applications'
+        else:
+            self.package_range = '- All installed applicatons'
+
+
         self.packages = []
-        for line in os.popen('adb -s {} shell pm list packages'.format(self.device.id)):
+        for line in os.popen('adb -s {} shell pm list packages {}'.format(self.device.id,option)):
             self.packages.append(line.split(':')[1].strip('\n'))
 
     def preloop(self):
@@ -64,61 +79,18 @@ class Parser(cmd2.Cmd):
 
         if args.recipe:
             self.write_recipe(args.recipe)
-
-            # if len(sys.argv) > 1:
-            #     data = ''
-            #     if '-r' in sys.argv[1]:
-            #         print('[+] Loading a recipe....')
-            #         with open(sys.argv[2], 'r') as file:
-            #             for line in file:
-            #                 if line.startswith('MODULE'):
-            #                     module = line[7:-1]
-            #                     print('- Loading {}'.format(module))
-            #                     self.modManager.stage_verbadim(module)
-            #                 else:
-            #                     data += line
-            #         self.modified = True
-            #     if data != '':
-            #         print("[+] Writing to scratchpad...")
-            #         self.edit_scratchpad(data)
                         
-
-
-        click.secho(""" 
-                                                                                                                        
-                                                       ////                                                             
-                                                       *////*                                                           
-                                       .******,         ,****           *****                                           
-                                      ***********      .*****         ******                                            
-                                             *****   .*****.          *****                                             
-                                             .****.  ****,    .****,   ********        ..                               
-                         **********           *****  ******************.  ,*****,  ,*******,                            
-                          ,**********         .*****  .********.   ,****    .****..****.                                
-                                .****   ******  ******.                     *****  ******                               
-                               *****. **********  *******.       ***************    .*****,                             
-                              *****  .****  .***     ,****     ******,..,***.         .****,                            
-                  ********   *****   *****         .,*****     *****         ,****,   .****,  ********                  
-                ,**********  .***********    ,*  .*******       *******  *.   ,***********, ,**********                 
-                .****  *****.   ,*****.       .*.                  **, **        .******   ,****. ,****                 
-                        ,*******.   ,******     ***********************,    ,******    .*******                         
-                           *****. *********  *****************************.  ********* *****,                           
-                 .**********.   .*****    ,**********************************.    *****    ,**********                  
-               ,**************, *****   ,******,  .******************   *******.   ****, ***************                
-              .****. .**,  **,  ****,  ********,  ,******************   *********  *****  **.  ***  ,****               
-         ,*********  ******,   *****. ******************************************** ,****,   ******,  *********.         
-          ,*****,      ,***********  *********************************************,  ***********.     .,****,.          
-                            ,,,.    .,*,,,,,,,,,,,,,*,*,,,,,,,,,*,,,,,*,*,,,,,,,,,,     .,,.""", fg='green',bold=True)                           
+        randomized_fg = lambda: tuple(random.randint(0, 255) for _ in range(3))
+                     
         click.secho("""                                                                                                                      
-                                                           ####                                                         
-                                                           ####                                                         
-             ##################      #########      ###########   ####     ####   .#########    ##########              
-            ####    ####    ####   ####    .###.  #####    ####   ####     ####  .###.                 ####             
-            ####    ####    ####   ############# .####     ####   ####     ####   #########     ###########             
-            ####    ####    ####   ####           ####     ####   ####     ####         ####.  ####    ####             
-            ####    ####    ####    ###########    ############    ############  .##########  ############             
-                                         ...            ...            ...           ...           ....     
-
- Type help for options\n\n""", fg=(204, 255, 204),bold=True)
+    ███╗   ███╗███████╗██████╗ ██╗   ██╗███████╗ █████╗ 
+    ████╗ ████║██╔════╝██╔══██╗██║   ██║██╔════╝██╔══██╗    
+    ██╔████╔██║█████╗  ██║  ██║██║   ██║███████╗███████║
+    ██║╚██╔╝██║██╔══╝  ██║  ██║██║   ██║╚════██║██╔══██║
+    ██║ ╚═╝ ██║███████╗██████╔╝╚██████╔╝███████║██║  ██║
+    ╚═╝     ╚═╝╚══════╝╚═════╝  ╚═════╝ ╚══════╝╚═╝  ╚═╝ Version: 1.2.4  
+                                    
+ 🪼 Type help for options 🪼 \n\n""", fg=randomized_fg(),bold=True)
         self.do_loaddevice("dummy")
 
 
@@ -141,70 +113,6 @@ class Parser(cmd2.Cmd):
         """Usage: c [shell command]
         Run a shell command on the local host."""
         subprocess.run(line, shell=True)
-
-    def do_c2check(self, line) -> None:
-        """Usage: c2check [package name]
-        Searches the application's memory for C2 addresses"""      
-        try:
-            pkg = line.split(' ')[0]
-            click.secho('Starting app:'.format(pkg), fg = 'green')
-            os.popen("adb -s {} shell  monkey -p {} -c 'android.intent.category.LAUNCHER 1'".format(self.device.id,pkg)).read()
-            pid = os.popen("adb -s {} shell pidof {}".format(self.device.id,pkg)).read().strip()
-           
-            if pid == "":
-                click.secho("Can't find pid !",fg='red')
-                return
-            elif len(pid.split(' ')) > 1:
-                option, index = pick(pid.split(' '),"More than one processes found running with that name:",indicator="=>",default_index=0)
-                pid = option
-            else:
-                 click.secho('Process pid:{}'.format(pid),fg='green')
-
-            maps = os.popen("""adb -s {} shell 'echo "cat /proc/{}/maps" | su'""".format(self.device.id, pid)).read().split('\n')
-            for linein in maps:
-                if 'dalvik-main space' in linein:
-                    range1 = int(linein.split(' ')[0].split('-')[0],16)
-                    range2 = int(linein.split(' ')[0].split('-')[1],16)
-                    sz = range2 - range1
-                    print('Starting addres: {}, size: {}'.format(hex(range1),range2-range1))
-                    self.native_handler = nativeHandler(self.device)
-                    self.native_handler.memraw(pkg + ' ' + pid + ' ' + hex(range1) + ' ' + str(sz),True)
-
-            hosts = []
-            output = []
-            all_strings=[]
-            script_path = os.path.abspath(__file__)
-            script_dir = os.getcwd()
-            dump_dir = script_dir+os.path.sep+'dump'+os.path.sep+pkg
-            for filename in os.listdir(dump_dir):
-                file_path = os.path.join(dump_dir, filename)
-                if os.path.isfile(file_path):
-                    cmd = "strings {}".format(file_path)
-                    result = subprocess.run(cmd,shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                    if result.returncode == 0:
-                        output = result.stdout.decode().strip().split('\n')
-                        for entry in output:
-                            all_strings.append(entry)
-                            if self.is_valid_url(entry):
-                               hosts.append(urlparse(entry).netloc)
-
-            hosts = list(dict.fromkeys(hosts))
-            whitelist = script_dir+os.path.sep+'whitelist.txt'
-            whitelist_urls = []
-            if os.path.isfile(whitelist):
-                with open(whitelist,'r') as file:
-                    whitelist_urls = file.readlines()
-
-            whitelist_urls_strip=[x.strip() for x in whitelist_urls]
-            hosts =[x for x in hosts if not any(y in x for y in whitelist_urls_strip)]
-
-            click.secho('Scanning for web addresses',fg='yellow')
-            self.check_using_vt(hosts,script_dir+os.path.sep+'vt.key')
-            click.secho('Scanning for secrets',fg='yellow')
-            self.scan_for_secrets(list(dict.fromkeys(all_strings)))
-            
-        except Exception as e:
-            print(e) 
 
     def do_cc(self, line) -> None:
         """
@@ -255,7 +163,7 @@ class Parser(cmd2.Cmd):
             epilog = """}
     catch(error){
         colorLog("------------Error Log start-------------",{ c:Color.Red })
-        console.log(error);
+        console.log(error.stack);
         colorLog("------------Error Log EOF---------------",{ c:Color.Red })
      } });"""
             if delay != '':
@@ -265,8 +173,8 @@ class Parser(cmd2.Cmd):
                 hooks.append(epilog)
 
             with open(os.path.join(self.base_directory, 'agent.js'), 'w') as agent:
-                for line in hooks:
-                    agent.write('%s\n' % line)
+                for hook_line in hooks:
+                    agent.write('%s\n' % hook_line)
             if rs:
                 print("\nScript has been reset\n")
             else:
@@ -318,7 +226,7 @@ class Parser(cmd2.Cmd):
     def do_enumerate(self, line) -> None:
         """
         Enumerates the exported functions of a native library.
-        Usage: exports com.foo.com libname.so
+        Usage: enumerate com.foo.com libname.so
         Using '--attach' will attach to the already running process (gives better results)
         """
         try:
@@ -356,13 +264,17 @@ class Parser(cmd2.Cmd):
         """
         Exit MEDUSA
         """
-        with open(os.path.join(self.base_directory, 'agent.js'), 'r') as agent:
-            agent.seek(0)
-            if agent.read(1):
-                if Polar('Do you want to reset the agent script?').ask():
+        agent_path = os.path.join(self.base_directory, 'agent.js')
+        scratchpad_path = os.path.join(self.base_directory, 'modules/scratchpad.med')
+
+        if os.path.getsize(agent_path) != 0:
+            if Polar('Do you want to reset the agent script?').ask():
                     open(os.path.join(self.base_directory, 'agent.js'), 'w').close()
-    
-        self.scratchreset()
+
+        if os.path.getsize(scratchpad_path) != 119:
+            if Polar('Do you want to reset the scratchpad?').ask():
+                    self.edit_scratchpad('')
+
         print('Bye!!')
         sys.exit()
 
@@ -378,7 +290,10 @@ class Parser(cmd2.Cmd):
                 for mod in filter(lambda mod: mod.Name != 'scratchpad', self.modManager.staged):
                     file.write('MODULE ' + mod.Name + '\n')
                 file.write(self.modManager.getModule('scratchpad').Code)
-            print('Recipe exported to dir: {} as {}'.format(os.getcwd(), line))
+            if os.path.splitext(line)[1] == '.session':
+                print("Current session mod list saved as: {}, use session --load to reload it".format(os.path.splitext(line)[0]))
+            else:
+                print('Recipe exported to dir: {} as {}'.format(os.getcwd(), line))
         except Exception as e:
             print(e) 
             print("[i] Usage: export filename")
@@ -530,7 +445,7 @@ class Parser(cmd2.Cmd):
                         - shell                     : Open an interactive shell
                 ----------------------------------------------------------------------------------------------------
                         - dump [package_name]       : Dump the requested package name (works for most unpackers)
-                        - list                      : List 3rd party packages
+                        - list [-a, -s, -3]         : List all, system or 3rd party packages
                         - list 'package_name' path  : List data/app paths of 3rd party packages
                         - loaddevice                : Load or reload a device
                         - reload [-r recipe]        : Reload the modules. Use -r to load a recipe (see export command)
@@ -556,15 +471,18 @@ class Parser(cmd2.Cmd):
         Hook a method or methods
         Usage:
         hook [options] where option can be one of the following:
-            -a [class name]: Set hooks for all the methods of the given class
-            -f              : Initiate a dialog for hooking a Java method
-            -n              : Initiate a dialog for hooking a native method
-            -r              : Reset the hooks setted so far
+            -a [class name] [--color] : Set hooks for all the methods of the given class.  
+                                        (optional) Use the --color option to set different color output 
+                                        (default is purple)
+            -f                        : Initiate a dialog for hooking a Java method
+            -n                        : Initiate a dialog for hooking a native method
+            -r                        : Reset the hooks setted so far
         """
         option = line.split(' ')[0]
         codejs = '\n'
-        if '-f' in option:
-            className = input("Enter the full name of the method(s) class: ")
+        if option=='-f':
+            className = input("Enter the full name of the method(s)'s class: ")
+            class_uuid = str(int(time.time()))
             uuid = str(int(time.time()))
 
             codejs = """let hook_"""+uuid+""" = Java.use('""" + className + """');"""
@@ -573,12 +491,13 @@ class Parser(cmd2.Cmd):
 
             while (True):
                 try:
+                    
                     codejs += """
-                    let overloadCount_"""+uuid+""" = hook_"""+uuid+"""['""" + functionName + """'].overloads.length;
-                    colorLog("Tracing " +'""" + functionName + """' + " [" + overloadCount_"""+uuid+""" + " overload(s)]",{ c: Color.Green });
+                    let overloadCount_"""+uuid+""" = hook_"""+class_uuid+"""['""" + functionName + """'].overloads.length;
+                    colorLog("\\nTracing " +'""" + functionName + """' + " [" + overloadCount_"""+uuid+""" + " overload(s)]",{ c: Color.Green });
                         
                         for (let i = 0; i < overloadCount_"""+uuid+"""; i++) {
-                            hook_"""+uuid+"""['""" + functionName + """'].overloads[i].implementation = function() {
+                            hook_"""+class_uuid+"""['""" + functionName + """'].overloads[i].implementation = function() {
                             colorLog("*** entered " +'""" + functionName + """',{ c: Color.Green });"""
                     if enable_backtrace:
                         codejs+="""
@@ -601,22 +520,34 @@ class Parser(cmd2.Cmd):
                     """
                     print('[+] Method: {} hook added !'.format(functionName))
                     functionName = input("Enter a method name (CTRL+C to Exit): ")
+                    enable_backtrace =  Polar('Enable backtrace?', False).ask()
+                    uuid = str(int(time.time()))
 
                 except KeyboardInterrupt:
                     self.edit_scratchpad(codejs, 'a')
                     print("\nHooks have been added to the" + GREEN + " scratchpad" + RESET + " run 'compile' to include it in your final script")
                     break
 
-        elif "-a" in option:
+        elif option=='-a':
             aclass = line.split(' ')[1].strip()
             if aclass == '':
                 print('[i] Usage hook -a class_name')
             else:
-                self.hookall(aclass)
-        elif '-r' in option:
+                if len(line.split(' ')) > 2:
+                    if line.split(' ')[2].strip()=='--color':
+                        collors = ['Blue','Cyan','Gray','Green','Purple','Red','Yellow']
+                        option, index = pick(collors,"Available colors:",indicator="=>",default_index=0)
+                        self.hookall(aclass,option)
+                    else:
+                        self.hookall(aclass)
+                else:
+                    self.hookall(aclass)
+        elif option=='-r':
             self.scratchreset()
-        elif '-n' in option:
+        elif option=='-n':
             self.hook_native()
+        else:
+            print("[i] Invalid option")
     
     def do_jtrace(self,line) -> None:
         """
@@ -658,7 +589,7 @@ class Parser(cmd2.Cmd):
         """
         Imports a script from a predefined directory and adds it to the scratchpad.
         Usage: 
-        import [tab] #pressing tab will show the availlable scripts.
+        import [tab] #pressing tab will show the available scripts.
         """
         try:
             with open(os.path.join(self.base_directory, 'snippets', line + '.js'), 'r') as file:
@@ -735,25 +666,60 @@ class Parser(cmd2.Cmd):
 
     def do_list(self,line) -> None:
         """
-        List installed 3rd party applications of the android device 
-        """
-        if len(line.split()) == 0:
-            self.init_packages()
-        else:
-            try:    
-                package = line.split()[0]
-                option = line.split()[1]
-                dumpsys = os.popen('adb -s {} shell dumpsys package {}'.format(self.device.id,package))
-                if option == "path":
-                    print('-'*20+package+' '+"paths"+'-'*20)
-                    for ln in dumpsys:
-                        for keyword in ["resourcePath","codePath","legacyNativeLibraryDir","primaryCpuAbi"]:
-                            if keyword in ln:
-                                print(ln,end='')
+        Set the currently working package set / get infor about an installed package
+        list [opt]
+        Where opt:
+            -a: all known packages (but excluding APEXes)
+            -s: filter to only show system packages
+            -3: filter to only show third party packages
+        
+        Get info about a package:
 
-                print("-"*31+'EOF'+'-'*len(package)+'-'*12)
-            except Exception as e:
-                print(e)
+        list package_name [path]
+        - Use the option path argument to return the application's installation path
+
+        Examples:
+
+        list com.example.app
+        list com.example.app path
+        list -3
+        """
+
+        try:
+            options = len(line.split()) 
+            
+            if options == 0:
+                self.init_packages()
+            elif options == 1 and line.split()[0] not in ['-a','-s','-3']:
+                package = line.split()[0]
+                if package in self.packages:
+                    dumpsys = os.popen('adb -s {} shell dumpsys package {}'.format(self.device.id,package))
+                    print('- package info -')
+                    for ln in dumpsys:
+                        print(ln,end='')
+                else:
+                    print('Invalid package')
+            elif options == 2 and line.split()[1] == 'path':
+                package = line.split()[0]
+                dumpsys = os.popen('adb -s {} shell dumpsys package {}'.format(self.device.id,package))
+                print('-'*20+package+' '+"paths"+'-'*20)
+                for ln in dumpsys:
+                    for keyword in ["resourcePath","codePath","legacyNativeLibraryDir","primaryCpuAbi"]:
+                        if keyword in ln:
+                            print(ln,end='')
+            elif options == 1:
+                opt = line.split()[0]
+                if opt == '-a':
+                    self.init_packages('-a')
+                elif opt == '-s':
+                    self.init_packages('-s')
+                elif opt == '-3':
+                    self.init_packages('-3')
+            else:
+                print("Invalid option, use 'help list for options'")
+
+        except Exception as e:
+            print(e)
 
     def do_load(self,line) -> None:
         """
@@ -783,7 +749,8 @@ class Parser(cmd2.Cmd):
         except:
             self.device = frida.get_remote_device()
         finally:
-            self.init_packages()
+            #lets start by loading all packages and let the user to filter them out 
+            self.init_packages('-3')    
 
     def do_memops(self,line) -> None:
         """
@@ -793,6 +760,108 @@ class Parser(cmd2.Cmd):
         """
         self.native_handler = nativeHandler(self.device)
         self.native_handler.memops(line)
+
+    def do_memscan(self,line) ->None:
+        """Usage: memscan [option] package_name [nuclei template(s) (file or path)]
+        Where option:
+        -c2                                         scan the application's memory for c2 addresses using virus total database (need vt api key)
+        -s                                          scan for secrets using regex entries from /medusa/sigs.json
+        -nt  package_name /path/to/template(s)      scan for secrets using a nuclei template
+        -a                                          perform all scans
+        """
+        try:
+
+            if len(line.split(' ')) < 2:
+                print("Invalid parameters given, type 'help memscan' for options")
+                return
+            
+            if line.split(' ')[0] not in ['-c2','-s','-nt','-a']:
+                print(f"No such an optiion {line.split(' ')[0]}. Type 'help memscan for help")
+                return
+            
+            pkg = line.split(' ')[1]
+            pid = os.popen("adb -s {} shell pidof {}".format(self.device.id,pkg)).read().strip()
+
+            if pid == "":
+                click.secho('Trying to start the app:'.format(pkg), fg = 'green')
+                os.popen("adb -s {} shell  monkey -p {} -c 'android.intent.category.LAUNCHER 1'".format(self.device.id,pkg)).read()
+                pid = os.popen("adb -s {} shell pidof {}".format(self.device.id,pkg)).read().strip()
+
+            if pid == "":
+                click.secho("Can't find pid !",fg='red')
+                return
+            elif len(pid.split(' ')) > 1:
+                option, index = pick(pid.split(' '),"More than one processes found running with that name:",indicator="=>",default_index=0)
+                pid = option
+            else:
+                 click.secho('Process pid:{}'.format(pid),fg='green')
+
+            maps = os.popen("""adb -s {} shell 'echo "cat /proc/{}/maps" | su'""".format(self.device.id, pid)).read().split('\n')
+            for linein in maps:
+                if 'dalvik-main space' in linein:
+                    range1 = int(linein.split(' ')[0].split('-')[0],16)
+                    range2 = int(linein.split(' ')[0].split('-')[1],16)
+                    sz = range2 - range1
+                    print('Starting addres: {}, size: {}'.format(hex(range1),range2-range1))
+                    self.native_handler = nativeHandler(self.device)
+                    self.native_handler.memraw(pkg + ' ' + pid + ' ' + hex(range1) + ' ' + str(sz),True)
+
+            hosts = []
+            output = []
+            all_strings=[]
+            script_path = os.path.abspath(__file__)
+            script_dir = os.getcwd()
+            dump_dir = script_dir+os.path.sep+'dump'+os.path.sep+pkg
+            for filename in os.listdir(dump_dir):
+                file_path = os.path.join(dump_dir, filename)
+                if os.path.isfile(file_path):
+                    cmd = "strings {}".format(file_path)
+                    result = subprocess.run(cmd,shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    if result.returncode == 0:
+                        output = result.stdout.decode().strip().split('\n')
+                        for entry in output:
+                            all_strings.append(entry)
+                            if self.is_valid_url(entry):
+                               hosts.append(urlparse(entry).netloc)
+
+            hosts = list(dict.fromkeys(hosts))
+            whitelist = script_dir+os.path.sep+'whitelist.txt'
+            whitelist_urls = []
+            if os.path.isfile(whitelist):
+                with open(whitelist,'r') as file:
+                    whitelist_urls = file.readlines()
+
+            whitelist_urls_strip=[x.strip() for x in whitelist_urls]
+            hosts =[x for x in hosts if not any(y in x for y in whitelist_urls_strip)]
+
+            opt = line.split(' ')[0] 
+
+            if opt == '-c2':
+                click.secho('Scanning for web addresses',fg='yellow')
+                self.check_using_vt(hosts,script_dir+os.path.sep+'vt.key')
+            elif opt == '-s':
+                click.secho('Scanning for secrets',fg='yellow')
+                self.scan_for_secrets(list(dict.fromkeys(all_strings)))
+            elif opt == '-nt':
+                if len(line.split(' ')) != 3:
+                    print('This option requires a path to the template(s)')
+                    return
+                self.scan_using_nuclei_template(list(dict.fromkeys(all_strings)),line.split(' ')[2])
+            elif opt == '-a':
+                click.secho('Performing all availlable scans...',fg='yellow')
+                click.secho('Scanning for web addresses',fg='yellow')
+                self.check_using_vt(hosts,script_dir+os.path.sep+'vt.key')
+                click.secho('Scanning for secrets',fg='yellow')
+                self.scan_for_secrets(list(dict.fromkeys(all_strings)))
+            else:
+                print("No such option...")
+                return
+
+            
+        except Exception as e:
+            print(e) 
+
+        return
 
     def do_memmap(self,line) -> None:
         """
@@ -822,7 +891,7 @@ class Parser(cmd2.Cmd):
             range1 = int(option.split(' ')[0].split('-')[0],16)
             range2 = int(option.split(' ')[0].split('-')[1],16)
             sz = range2 - range1
-            print('Starting addres: {}, size: {}'.format(hex(range1),range2-range1))
+            print('Starting address: {}, size: {}'.format(hex(range1),range2-range1))
 
             self.native_handler = nativeHandler(self.device)
             self.native_handler.memraw(pkg + ' ' + pid + ' ' + hex(range1) + ' ' + str(sz))
@@ -867,7 +936,7 @@ class Parser(cmd2.Cmd):
             self.write_recipe(line.split(' ')[1])
         print(f"[i] Done....\n[i] Total modules available {self.modManager.get_number_of_modules()}")
 
-    def do_rem(self, mod) -> None:
+    def do_rem(self, mod, redirect_output=False) -> None:
         """
         Remove one or more staged modules
         rem [module]
@@ -877,10 +946,16 @@ class Parser(cmd2.Cmd):
         """
         try:
             if self.modManager.unstage(mod):
-                print("\nRemoved module(s) starting with : {}".format(mod) )
+                if redirect_output:
+                    sys.stderr.write("\nRemoved module(s) starting with : {}".format(mod))
+                else:
+                    print("\nRemoved module(s) starting with : {}".format(mod))
                 self.modified = True
             else:
-                print("Module(s) is not active.")
+                if redirect_output:
+                    sys.stderr.write("\nModule(s) is not active.")
+                else:
+                    print("Module(s) is not active.")
             print()  
         except Exception as e:
             print(e)
@@ -900,24 +975,38 @@ class Parser(cmd2.Cmd):
 
         Options:
 
-        run [package name]      : Initiate a Frida session and attach to the selected package
-        run -f [package name]   : Initiate a Frida session and spawn the selected package
-        run -n [package number] : Initiate a Frida session and spawn the 3rd party package using its index returned by the 'list' command
+        run [package name]       : Initiate a Frida session and attach to the selected package
+             -f [package name]   : Initiate a Frida session and spawn the selected package
+             -n [package number] : Initiate a Frida session and spawn the 3rd party package using its index returned by the 'list' command
+             -p [pid]            : Initiate a Frida session using a process id
         """
         try:
             if self.modified:
                 if Polar('Module list has been modified, do you want to recompile?').ask():
                     self.do_compile(line)
- 
             flags = line.split(' ')
             length = len(flags)
+
             if length == 1:
-                self.run_frida(False, False, line, self.device)
+                if flags[0] == '-p':
+                    runing_processes = os.popen("""adb -s {} shell 'echo "ps -A" | su'""".format(self.device.id)).read().strip().split('\n')
+                    title = "Running processes: "
+                    option, index = pick(runing_processes,title,indicator="=>",default_index=0)
+                    click.echo(click.style(option,bg='blue', fg='white'))
+                    pattern = r'\b\d+\b'
+                    get_pid = re.findall(pattern, option)
+
+                    self.run_frida(False,False,'',self.device,get_pid[0])
+
+                   
+                else: 
+                    self.run_frida(False, False, line, self.device)
+            
             elif length == 2:
                 
-                if '-f' in flags[0]:
+                if flags[0] == '-f':
                     self.run_frida(True, False, flags[1], self.device)
-                elif '-n' in flags[0]:
+                elif flags[0] == '-n':
                     try:
                         if len(self.packages) == 0:
                             self.refreshPackages()
@@ -927,7 +1016,8 @@ class Parser(cmd2.Cmd):
                         self.run_frida(True, False, package_name, self.device)
                     except (IndexError, TypeError) as error:
                         print('Invalid package number')
-
+                elif flags[0] == '-p':
+                    self.run_frida(False,False,'',self.device,flags[1])
                 else:
                     print('Invalid flag given!')
 
@@ -948,7 +1038,7 @@ class Parser(cmd2.Cmd):
         except Exception as e:
             print(e)
 
-    def do_search(self, pattern) -> None:
+    def do_search(self, pattern,redirect_output=False) -> None:
         """
         Search for modules related to a given keyword
         Usage:
@@ -956,21 +1046,45 @@ class Parser(cmd2.Cmd):
         """
         matches = self.modManager.findModule(pattern)
         if not matches:
-            print('No modules found containing: {}!'.format(pattern))
+            if redirect_output:
+                sys.stderr.write('\nNo modules found containing: {}!'.format(pattern))
+            else:
+                print('No modules found containing: {}!'.format(pattern))
         else:
             for match in matches:
-                print(match.replace(pattern, GREEN + pattern + RESET))
+                if redirect_output:
+                    sys.stderr.write(match.replace(pattern, GREEN + pattern + RESET)+'\n')
+                else:
+                    print(match.replace(pattern, GREEN + pattern + RESET))
+
+    def do_session(self,line)->None:
+        """
+        Usage: session [--save 'name'] [--load] [--del]
+        --save 'name', saves the current module set 
+        --load loads a module set that was previously saved
+        --del deletes a module set
+        """
+        operation = line.split(' ')[0]
+
+        if operation == '--save':
+            self.save_session(line.split(' ')[1])
+        elif operation == '--load':
+            self.load_session()
+        elif operation == '--del':
+            self.del_session()
+        else:
+            print("Invalid session option")
 
     def do_shell(self, line) -> None:
         """
-        Get a tmp local shell
+        Get a local shell
         """
         shell = os.environ['SHELL']
         subprocess.run('{}'.format(shell), shell=True)
 
     def do_show(self, what) -> None:
         """
-        Show availlable modules
+        Show available modules
         """
         try:
             if what == 'categories':
@@ -1063,7 +1177,7 @@ class Parser(cmd2.Cmd):
         """
         os.popen("adb -s {} shell input text {}".format(self.device.id,text))
 
-    def do_use(self, mod) -> None:
+    def do_use(self, mod, redirect_output=False) -> None:
         """
         Stage a module or modules
         Usage:
@@ -1072,14 +1186,14 @@ class Parser(cmd2.Cmd):
         Example: use http_communications/ , will load all the modules starting with "http_communications/"
         """
         self.modManager.stage(mod)
-        self.show_mods()
+        self.show_mods(redirect_output)
         self.modified = True
         print()
         
 ###################################################### do_ defs end ############################################################
 
 ###################################################### complete_ defs start ############################################################
-    def complete_c2check(self, text, line, begidx, endidx) -> list:
+    def complete_memscan(self, text, line, begidx, endidx) -> list:
         return self.complete_list(text, line, begidx, endidx)
     
     def complete_dump(self, text, line, begidx, endidx) -> list:
@@ -1165,6 +1279,18 @@ class Parser(cmd2.Cmd):
             else:
                 click.secho("[?] {} return {}".format(host,response.status_code),fg='blue')
 
+    def del_session(self)->None:
+        try:
+            session = self.get_selected_session()
+            if session is not None:
+                print("Deleting: ")
+                click.echo(click.style(session,bg='red', fg='white'))
+                os.remove(session+'.session')
+            else:
+                return
+        except Exception as e:
+            print("An error occurred:", str(e))    
+
     def edit_scratchpad(self, code, mode='w') -> None:
         scratchpad = self.modManager.getModule('scratchpad')
         if mode == 'a':
@@ -1174,27 +1300,51 @@ class Parser(cmd2.Cmd):
         else:
             raise Exception('Attempted to open scratchpad in invalid mode {}'.format(mode))
         scratchpad.save()
-        #if code != '':
-        self.modManager.stage('scratchpad')
+        if code != '':
+            self.modManager.stage('scratchpad')
         self.modified = True
 
     def fill_app_info(self,data) -> None:
         self.app_info = json.loads(data)
 
-    def hookall(self, line) -> None:
-        aclass = line.split(' ')[0]
-        if  aclass == '':
-            print('[i] Usage: hookall [class name]')
-        else:
-            className = aclass
-            codejs = "traceClass('"+className+"');\n"
-            self.edit_scratchpad(codejs, 'a')
-            print("\nHooks have been added to the" + GREEN + " scratchpad" + RESET + " run 'compile' to include it in your final script")
+    def get_selected_session(self)->str:
+        try:
+            session_files = ['Cancel']
+            for filename in os.listdir(self.base_directory):
+                if filename.endswith(".session"):
+                    session_files.append(os.path.splitext(filename)[0])
+            if len(session_files)==0:
+                print("No saved sessions found !")
+                return None
+            option, index = pick(session_files,"Saved sessions:",indicator="=>",default_index=0)
+            if option=='Cancel':
+                return None
+            return option  
+        except Exception as e:
+            print("An error occurred:", str(e))   
+            return None    
 
-    def frida_session_handler(self,con_device,force,pkg):
+    def hookall(self, className, color='Purple') -> None:
+        codejs = "traceClass('"+className+"','"+color+"');\n"
+        self.edit_scratchpad(codejs, 'a')
+        print("\nHooks have been added to the" + GREEN + " scratchpad" + RESET + " run 'compile' to include it in your final script")
+
+        # aclass = line.split(' ')[0]
+        # if  aclass == '':
+        #     print('[i] Usage: hookall [class name]')
+        # else:
+        #     className = aclass
+        #     codejs = "traceClass('"+className+"');\n"
+        #     self.edit_scratchpad(codejs, 'a')
+        #     print("\nHooks have been added to the" + GREEN + " scratchpad" + RESET + " run 'compile' to include it in your final script")
+
+    def frida_session_handler(self,con_device,force,pkg,pid=-1):
         time.sleep(1)
         if force == False:
-            self.pid = os.popen("adb -s {} shell pidof {}".format(self.device.id,pkg)).read().strip()
+            if pid == -1:
+                self.pid = os.popen("adb -s {} shell pidof {}".format(self.device.id,pkg)).read().strip()
+            else:
+                self.pid = pid
             #pid = con_device.attach(self.pid) 
             if self.pid == '':
                 print("[+] Could not find process with this name.")
@@ -1221,14 +1371,21 @@ class Parser(cmd2.Cmd):
         return frida_session
 
     def hook_native(self) -> None:
-        library = Open('Library name (e.g.: libnative.so):').ask()
-        type_ = Alternative('Imported or exported function?', 'i', 'e').ask()
-        function = Open('Function name or offset (e.g.: 0x1234):').ask()
-        number_of_args = Numeric('Number of function arguments (0 to disable trace):', lbound=0).ask()
-        backtraceEnable = Polar('Enable backtrace?', False).ask()
-        hexdumpEnable = Polar('Enable memory read?', False).ask()
-
-        header = ''
+        library = Open('Library name (e.g. libnative.so):').ask()
+        type_ = Alternative('[(i)mported] / [(e)xported] / [(a)ny - requires the function\'s offset] function:', 'i', 'e','a').ask()
+        function = Open('Function name or offset (e.g. 0x1234):').ask()
+        number_of_args = Numeric('Number of arguments (enter 0 to disable logging):', lbound=0).ask()
+        backtraceEnable = Polar('Do you want to log the stack trace:', False).ask()
+        hexdumpEnable = Polar('Do you want to dump the address pointed by the return value:', False).ask()
+        uuid = str(int(time.time()))
+        header = "console.log('[*][*] Waiting for "+library+" ...');\n"
+        header+="waitForModule('" +library+"').then((lib) => {"
+        header+="""
+            console.log(`[*][+] Found library at: ${ lib.base }`)
+            hook_any_native_func_"""+uuid+"""();
+        });\n
+        function hook_any_native_func_"""+uuid+"""(){
+        """
         argread = ''
 
 #         for i in range(int(number_of_args)):
@@ -1270,12 +1427,12 @@ catch (err) {
         else:
             tracejs = ''
 
-        if function.startswith('0x'):
-            header = "\nInterceptor.attach(Module.findBaseAddress('" + library + "').add(" + function + "), {"
+        if function.startswith('0x') or type_ == 'a':
+            header += "\nInterceptor.attach(Module.findBaseAddress('" + library + "').add(" + function + "), {"
         elif type_ == 'e':
-            header = "\nInterceptor.attach(Module.getExportByName('" + library + "', '" + function + "'), {"
+            header += "\nInterceptor.attach(Module.getExportByName('" + library + "', '" + function + "'), {"
         else:
-            header = "\nvar func = undefined;\n" + 'var imports = Module.enumerateImportsSync("' + library + '");\n'
+            header += "\nvar func = undefined;\n" + 'var imports = Module.enumerateImportsSync("' + library + '");\n'
             header += 'for(var i = 0; i < imports.length; i++){\nif (imports[i].name=="' + function + '") \n{ func = imports[i].address; break; } }'
             header += "Interceptor.attach(func, {\n"
         
@@ -1295,14 +1452,15 @@ catch (err) {
           console.log('Error:'+err);
       }
     }
-});
+}) };
 """
         self.edit_scratchpad(codejs, 'a')
         print("\nHooks have been added to the" + GREEN + " scratchpad" + RESET + " run 'compile' to include it in your final script")
 
-    def init_packages(self) -> None:
-        self.refreshPackages()
-        print('\nInstalled packages:\n')
+    def init_packages(self,option="") -> None:
+        self.refreshPackages(option)
+        click.secho(f'\n{self.package_range}:',fg='green',bg='blue')
+        print()
         for i in range(len(self.packages)):
             print('[{}] {}'.format(i, self.packages[i]))
 
@@ -1312,6 +1470,18 @@ catch (err) {
             return all([result.scheme, result.netloc])
         except ValueError:
             return False
+
+    def load_session(self)->None:
+        try:
+            session = self.get_selected_session()
+            if session is not None:
+                print("Restoring: ")
+                click.echo(click.style(session,bg='blue', fg='white'))
+                self.do_reload('-r {}.session'.format(session))
+            else:
+                return
+        except Exception as e:
+            print("An error occurred:", str(e))
 
     def load_snippet(self, snippet) -> None:
         try:
@@ -1370,13 +1540,13 @@ Code Cache Directory: {}
 Obb Directory: {}
 Apk Directory: {}\n""".format(appname,filesDirectory,cacheDirectory,externalCacheDirectory,codeCacheDirectory,obbDir,packageCodePath)+RESET)
         else:
-            print("[!] No availlable info.")
+            print("[!] No available info.")
 
-    def run_frida(self, force, detached, package_name, device)->None:
-        in_session_menu = WHITE + '[in-session] |'+ GREEN + 'c:' + WHITE + 'clear |'  + GREEN + 'e:' + WHITE + 'exit |' + GREEN + 'r:' + WHITE + 'reload | \n' + '| '+ GREEN + 'rs:' + WHITE + 'reset scratchpad |' +  GREEN + 'i:' + WHITE + 'info |' + GREEN + 't:' + WHITE + 'trace  |' + GREEN +'?:'+WHITE +'help |:'+RESET
+    def run_frida(self, force, detached, package_name, device,pid=-1)->None:
+        in_session_menu = WHITE + '(in-session)'+GREEN+' type '+YELLOW+'?'+GREEN+' for options'+WHITE+':➤'+RESET
         creation_time = modified_time = None
         self.detached = False
-        session = self.frida_session_handler(device,force,package_name)
+        session = self.frida_session_handler(device,force,package_name,pid)
         try:
             creation_time = self.modification_time(os.path.join(self.base_directory, "agent.js"))
             with open(os.path.join(self.base_directory, "agent.js")) as f:
@@ -1408,14 +1578,15 @@ Apk Directory: {}\n""".format(appname,filesDirectory,cacheDirectory,externalCach
                     else:
                          print(GREEN + "Script unchanged, nothing to reload ...." + RESET)
                 elif s == '?':
-                    print(RESET+"""\nHelp: 
-    'c'  (c)lear the sreen 
-    'e'  (e)xit the session
-    'r'  (r)eload the script in case it changed
-    'rs' (r)e(s)et the scratchpad
-    'i'  print (i)nformation about the application
-    't'  (t)race a method and print the stack trace (e.g. t com.foo.bar.func)
-    '?'  print this help message\n"""+RESET)
+                    print(RESET+"""\nAvailable commands: 
+    'c'     clear the sreen 
+    'e'     exit the session
+    'r'     reload the script in case it changed
+    'rs'    reset the scratchpad
+    'sus'   suspend the output 
+    'i'     print information about the application
+    't'     trace a method and print the stack trace (e.g. t com.foo.bar.func)
+    '?'     print this help message\n"""+RESET)
                 elif s == 'i':
                     self.print_app_info()
                 elif s == 'c':
@@ -1424,7 +1595,48 @@ Apk Directory: {}\n""".format(appname,filesDirectory,cacheDirectory,externalCach
                     self.scratchreset()
                     self.do_compile('')
                     self.reload_script(session)
+                elif s == 'sus':
+                    original_stdout = sys.stdout
+                    from io import StringIO
+                    temp_stdout = StringIO()
+                    sys.stdout = temp_stdout
+                    in_mute_cmd = ''
 
+                    while True:
+                        mod = False
+                        sys.stderr.write("(muted-mode) type ? for options:➤")
+                        in_mute_cmd = input()
+                        if in_mute_cmd == '?':
+                            sys.stderr.write("""\nAvailable commands:
+    'use module_name'   add an additional module
+    'rm  module_name'   remove a module
+    'show mods'         show active modules
+    'search keyword'    search for a module using a keyword
+    'con'               continue the session
+    '?'                 print this message\n""")
+                        elif in_mute_cmd.startswith('use '):
+                            self.do_use(in_mute_cmd.split(' ')[1],True)
+                            mod = True
+                        elif in_mute_cmd.startswith('rm '):
+                            self.do_rem(in_mute_cmd.split(' ')[1],True)
+                            mod = True
+                        elif in_mute_cmd == 'show mods':
+                            self.show_mods(True)
+                        elif in_mute_cmd.startswith('search '):
+                            self.do_search(in_mute_cmd.split(' ')[1],True)
+                        elif in_mute_cmd == 'con':
+                            break
+                        if mod:
+                            sys.stderr.write("\nCompiling....\n")
+                            self.do_compile('')
+                            sys.stderr.write("Reloading....\n")
+                            self.reload_script(session)
+
+
+                    sys.stdout = original_stdout
+                    print("-"*10+"Here is what you missed while suspended"+"-"*10+"\n"+temp_stdout.getvalue())
+
+                         
                 elif s.split(' ')[0] == 't':
                     try:
                       
@@ -1477,10 +1689,16 @@ Apk Directory: {}\n""".format(appname,filesDirectory,cacheDirectory,externalCach
             print(category)
         print()
 
-    def show_mods(self) -> None:
-        print("\nCurrent Mods:")
+    def show_mods(self, redirect_output=False) -> None:
         for i in range(len(self.modManager.staged)):
-            print('{}) {}'.format(i, self.modManager.staged[i].Name))
+            if redirect_output:
+                if i == 0:
+                    sys.stderr.write('\nCurrent Mods:\n')
+                sys.stderr.write('{}) {}\n'.format(i, self.modManager.staged[i].Name))
+            else:
+                if i == 0: 
+                    print("\nCurrent Mods:")
+                print('{}) {}'.format(i, self.modManager.staged[i].Name))
         print()
 
     def show_mods_by_category(self, category) -> None:
@@ -1493,6 +1711,25 @@ Apk Directory: {}\n""".format(appname,filesDirectory,cacheDirectory,externalCach
             for name, description in zip([mod.Name for mod in mods], [mod.Description for mod in mods]):
                 print(GREEN + f"{name: <{width}}" + BLUE + f"{description}" + RESET)
 
+    def save_session(self,session_name):
+        try:
+            session_files = []
+            for filename in os.listdir(self.base_directory):
+                if filename.endswith(".session"):
+                    session_files.append(os.path.splitext(filename)[0])
+
+            if session_name == "":
+                print("Missing session name !")
+            else:
+                if session_name in session_files:
+                    if not Polar("Session already exists, do you want to overwrite ?").ask():
+                        return
+                session_name+=".session"
+                self.do_export(session_name)
+            return
+        except Exception as e:
+            print("An error occurred:", str(e))   
+            
     def show_snippets(self) -> None:
         print("[i] Available snippets:")
         print('------------------------\n')
@@ -1524,6 +1761,65 @@ Apk Directory: {}\n""".format(appname,filesDirectory,cacheDirectory,externalCach
                 print(f'{result}')             
         except Exception as e:
             print(e)
+
+    def scan_using_nuclei_template(self,string_list,path_to_templates):
+        found = False
+        if os.path.isfile(path_to_templates):
+            entries =json.loads(self.yaml_to_json(path_to_templates))
+            found = self.scan_do_scan(string_list,entries)
+
+        elif os.path.isdir(path_to_templates):
+          
+            for root, dirs, files in os.walk(path_to_templates):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    #print(f'- Checking: {file_path}')
+                    if os.path.isfile(file_path):
+                        entries = json.loads(self.yaml_to_json(file_path))
+                        if self.scan_do_scan(string_list,entries):
+                            found = True
+        else:
+            print(f"{path_to_templates} is neither a file nor a directory.")
+            return
+        
+        if not found:
+            click.secho("[!] No matches found.")
+
+    def scan_do_scan(self,string_list,entries):
+        found = False
+        try:
+            id_value = entries['id']
+            severity_value = entries['info']['severity']
+            regexes = entries['file'][0]['extractors'][0]['regex']
+            for regex in regexes:
+                for entry in string_list:
+                    matches = re.findall(regex,entry)
+                    if matches:
+                        found = True
+                        for match in matches:
+                            click.secho(f'[+] Match found for {id_value}',fg='white',bg='red')
+                            click.secho(f'  \_[+] Severity: {severity_value}',fg='red')
+                            click.secho(f'  \_[+] Match value: {id_value}: {match}',fg='red')
+            return found              
+        except Exception as e:
+            print(f'Error while parsing the json data:{e}')
+            return found
+
+    def yaml_to_json(self,yaml_file):
+        # Read the YAML file
+        try:
+            with open(yaml_file, 'r') as file:
+                yaml_data = file.read()
+
+            # Load the YAML data
+            data = yaml.safe_load(yaml_data)
+
+            # Convert it to JSON
+            json_data = json.dumps(data, indent=2)
+            return json_data
+        except Exception as e:
+            print(f"Error converting YAML to JSON: {e}")
+            return None
 
     def write_recipe(self,filename) -> None:
         try:

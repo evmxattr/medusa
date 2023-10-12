@@ -98,11 +98,9 @@ class Guava:
           activity_alias_attributes = (sha256, aliasname, enabled, exported,permission,targetActivity)
           self.application_database.update_activity_alias(activity_alias_attributes)  
 
-  def fill_application_attributes(self,parsed_apk,sha256,application):
+  def fill_application_attributes(self,parsed_apk,sha256,application,original_filename):
     arsc = parsed_apk.get_android_resources()
-    app_attributes = (sha256,parsed_apk.get_app_name(),parsed_apk.get_package(),parsed_apk.get_androidversion_code(),parsed_apk.get_androidversion_name(),
-      parsed_apk.get_min_sdk_version(),parsed_apk.get_target_sdk_version(),parsed_apk.get_max_sdk_version(),'|'.join(parsed_apk.get_permissions()),
-      '|'.join(parsed_apk.get_libraries())) + (application.get(NS_ANDROID+"debuggable"), application.get(NS_ANDROID+"allowBackup"),parsed_apk.get_android_manifest_axml().get_xml(),arsc.get_string_resources(arsc.get_packages_names()[0]))
+    app_attributes = (sha256,parsed_apk.get_app_name(),parsed_apk.get_package(),parsed_apk.get_androidversion_code(),parsed_apk.get_androidversion_name(),parsed_apk.get_min_sdk_version(),parsed_apk.get_target_sdk_version(),parsed_apk.get_max_sdk_version(),'|'.join(parsed_apk.get_permissions()),'|'.join(parsed_apk.get_libraries())) + (application.get(NS_ANDROID+"debuggable"), application.get(NS_ANDROID+"allowBackup"),parsed_apk.get_android_manifest_axml().get_xml(),arsc.get_string_resources(arsc.get_packages_names()[0]),original_filename)
 
     self.application_database.update_application(app_attributes)
 
@@ -164,7 +162,7 @@ class Guava:
           service_attribs = (sha256, servicename, enabled, exported,foregroundServiceType, permission,process)
           self.application_database.update_services(service_attribs)
 
-  def full_analysis(self,apkfile):
+  def full_analysis(self,apkfile,print_info=True):
 
     app_sha256 = self.sha256sum(apkfile)
 
@@ -172,11 +170,11 @@ class Guava:
     apk_r = apk.APK(apkfile)
     manifest = apk_r.get_android_manifest_axml().get_xml_obj()
     application = manifest.findall("application")[0]
-
-    print("[+] Analysis finished.")
-    print("[+] Filling up the database....")
+    if print_info:
+      print("[+] Analysis finished.")
+      print("[+] Filling up the database....")
     self.filter_list = {}
-    self.fill_application_attributes(apk_r,app_sha256,application)
+    self.fill_application_attributes(apk_r,app_sha256,application,apkfile)
     self.fill_permissions(apk_r,app_sha256)
     self.fill_activities(application,app_sha256)
     self.fill_services(application,app_sha256)
@@ -184,8 +182,8 @@ class Guava:
     self.fill_receivers(application, app_sha256)
     self.fill_activity_alias(application, app_sha256)
     self.fill_intent_filters(app_sha256)
-
-    print("[+] Database Ready !")
+    if print_info:
+      print("[+] Database Ready !")
 
   def fill_intent_filters(self,sha256):
       for filter in self.filter_list:
@@ -193,3 +191,14 @@ class Guava:
           for item in objlist:
               filter_attribs = (sha256,filter,'|'.join(item.actionList),'|'.join(item.categoryList),'|'.join(item.dataList))
               self.application_database.update_intent_filters(filter_attribs)
+
+  def insert_note(self,sha256,note):
+     note = (sha256,note)
+     self.application_database.insert_note(note)
+  
+  def update_note(self,index,note):
+     self.application_database.update_note(index,note)
+  
+  def delete_note(self,index):
+     self.application_database.delete_note(index)
+  

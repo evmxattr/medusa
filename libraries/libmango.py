@@ -37,7 +37,7 @@ REVERSE = "\033[;7m"
 BUSSY_BOX_URL = "https://busybox.net/downloads/binaries/1.31.0-defconfig-multiarch-musl/"
 
 HELP_MESSAGE ="\nSYNOPSIS:"+"""
-    mango>[command] <parameters> <flags> """ +"""
+    mango➤[command] <parameters> <flags> """ +"""
 
 DESCRIPTION """+"""
 
@@ -165,8 +165,9 @@ class parser(cmd2.Cmd):
     NO_APP_LOADED_MSG = "[i] No application is loaded, type 'import /path/to/foo.apk' to load one"
     
     base_directory = os.path.dirname(__file__)
-    prompt = Fore.BLUE +Style.BRIGHT +'mango> '+Fore.RESET+Style.RESET_ALL
+    prompt = Fore.BLUE +Style.BRIGHT +'mango➤'+Fore.RESET+Style.RESET_ALL
     current_app_sha256 = None
+    notes = None
     database =None
     guava = None
     INSTALL = False
@@ -214,7 +215,6 @@ class parser(cmd2.Cmd):
                 if frombs == True:
                     return
             cmd = input(GREEN+'{}:adb:'.format(self.device.id)+RESET)
-
     #mark for tests
     def do_box(self,line):
         """Starts a busybox interactive shell. """
@@ -274,6 +274,34 @@ class parser(cmd2.Cmd):
         """Clear the screen"""
         os.system('clear')
 
+    def do_note(self,line):
+        """Usage: note [add|show|del|update]
+        Sends an intent which will start the given deeplink. 
+        When used with --poc it will create an html link to the given deeplink."""
+        try:
+            note_option = line.split()[0]
+            if note_option == 'add':
+                note = input("Note (press enter to commit): ")
+                self.guava.insert_note(self.current_app_sha256,note)
+                print("Note added.")
+            elif note_option == 'show':
+                notes = self.database.get_all_notes(self.current_app_sha256)
+                for index,sha256,cmt in notes:
+                    print(f'{index}) {cmt}')
+            elif note_option == 'del':
+                index = input("Enter the index of the note you want to delete:")
+                self.guava.delete_note(int(index))
+            elif note_option == 'update':
+                index = input("Enter the index of the note you want to update:")
+                note = input("Note (press enter to commit): ")
+                self.guava.update_note(index,note)
+                print("Note updated")
+            else:
+                print("[!] Invalid option !")
+                return
+        except Exception as e:
+            print(e)
+
     def do_deeplink(self,line):
         """Usage: deeplink [deeplink] [--poc]
         Sends an intent which will start the given deeplink. 
@@ -320,15 +348,40 @@ class parser(cmd2.Cmd):
         sys.exit()
 
     def do_import(self,line):
-        """Usage: import /full/path/to/foo.apk
+        """Usage: 
+        import /full/path/to/foo.apk
+        import /full/path/to/apks/ --mass 
         Imports an apk file for analysis and saves the results to 
-        the current session's database. """
+        the current session's database. Adding --mass will import 
+        all the apks under a directory and its subdirectories."""
 
-        apkfile = line.split(' ')[0]
-        if os.path.exists(apkfile):
-            self.real_import(apkfile)
+        num_of_options = len(line.split(' '))
+        if num_of_options == 1:
+            apkfile = line.split(' ')[0]
+            if os.path.exists(apkfile):
+                self.real_import(apkfile)
+            else:
+                print(Fore.RED+"[!] Error: can't find: {} ".format(apkfile)+Fore.RESET)
+        elif num_of_options == 2 and line.split(' ')[1]== '--mass':
+            try:
+                apk_files=[]
+                for root, dirs, files in os.walk(line.split(' ')[0]):
+                    for file in files:
+                        if file.endswith(".apk"):
+                            apk_files.append(os.path.join(root, file))
+                
+                if len(apk_files) == 0:
+                    print("[x] Nothing to import!")
+                else:
+                    i = 1
+                    for apk in apk_files:
+                        print(GREEN+f"[{i}] Importing: {apk}"+RESET)
+                        self.real_import(apk,False)
+                        i+=1
+            except Exception as e:
+                print(e)
         else:
-            print(Fore.RED+"[!] Error: can't find: {} ".format(apkfile)+Fore.RESET)
+            print("[!] Invalid option")
 
     def do_install(self,line):
         """Usage: install /full/path/to/foobar.apk
@@ -451,7 +504,7 @@ $adb remount
                 print('{}) {}'.format(i,dv))
                 i += 1
             print(Fore.RESET)
-            j = int(Numeric('\nEnter the index of the device to use:', lbound=0,ubound=i-1).ask())
+            j = int(Numeric('\nEnter the index of the device you want to use:', lbound=0,ubound=i-1).ask())
             device = devices[int(j)] 
             android_dev = android_device(device.id)
             android_dev.print_dev_properties()
@@ -511,7 +564,6 @@ $adb remount
                 print("[!] Medusa Agent must be installed and running on the device, type 'installagent' to install it.")
         except Exception as e:
             print(e)
-
     #mark for tests
     def do_patch(self,line):
         """Usage: patch /full/path/to/foo.apk
@@ -575,7 +627,6 @@ $adb remount
         Search the playstore for the app with the given id."""
         print(os.popen("adb -s {} shell am start -W -a android.intent.action.VIEW -d market://details?id={}".format(self.device.id,line.split(' ')[0])).read())
 
-
     def do_proxy(self,line):
         """Usage: proxy [get | reset | set] [ip:port] 
         Modifies the proxy configuration of the connected device:
@@ -611,7 +662,6 @@ $adb remount
         except Exception as e:
             print(e)
 
-
     def do_pull(self, line):
         """Usage: pull com.foo.bar
         Extracts an apk from the device and saves it as 'base.apk' in the working directory.
@@ -623,6 +673,8 @@ $adb remount
             print("Extracting: "+base_apk)
             output = os.popen("adb -s {} pull {}".format(self.device.id,base_apk,package)).read()
             print(output)
+            if Polar('Do you want to import the application?').ask():
+                self.do_import('base.apk')
         except Exception as e:
             print(e)
 
@@ -810,7 +862,7 @@ $adb remount
             print(self.NO_APP_LOADED_MSG)
         else:
             try:
-                cmd = "adb -s {} shell 'echo \"am start -n {}/{}\" | su'".format(self.device.id,self.info[0][2],line.split(' ')[0])
+                cmd = "adb -s {} shell 'su -c \"am start -n {}/{}\"'".format(self.device.id,self.info[0][2],line.split(' ')[0])
                 print("adb command: {}".format(cmd))
                 output=os.popen(cmd).read()
                 print(output)
@@ -899,10 +951,20 @@ $adb remount
         except Exception as e:
             print(e)
             
-
 ###################################################### complete defs start ############################################################
     
     #mark for tests, improve completes
+    def complete_note(self, text, line, begidx, endidx):
+        if self.current_app_sha256 == None:
+            components = []
+        else:
+            components = sorted(['add','del','show','update'])
+        if not text:
+            completions = components[:]
+        else:
+            completions = [f for f in components if f.startswith(text)]
+        return completions
+
 
     def complete_deeplink(self, text, line, begidx, endidx):
         if not text:
@@ -947,7 +1009,7 @@ $adb remount
 
     def complete_show(self, text, line, begidx, endidx):
         if self.current_app_sha256 == None:
-            components = ['database']
+            components = ['database','applications']
         else:
             components = sorted(['exposure', 'applications','activityAlias','info','permissions', 'activities', 'services', 'receivers', 'intentFilters','providers', 'deeplinks','strings','database','manifest'])
         if not text:
@@ -1029,6 +1091,7 @@ $adb remount
     def print_application_info(self,info):
         print(Back.BLACK+Fore.RED+Style.BRIGHT+"""
 [------------------------------------Package Details---------------------------------------]:
+|    Original Filename :{}
 |    Application Name  :{}
 |    Package Name      :{}
 |    Version code      :{}
@@ -1042,8 +1105,15 @@ $adb remount
 [------------------------------------------------------------------------------------------]
 |                          Type 'help' or 'man' for a list of commands                     |
 [------------------------------------------------------------------------------------------]
-        """.format(info[0][1],info[0][2],info[0][3],info[0][4],
-            info[0][5],info[0][6],info[0][7],info[0][0],info[0][10],info[0][11]) +Style.RESET_ALL)   
+        """.format(info[0][14],info[0][1],info[0][2],info[0][3],info[0][4],
+            info[0][5],info[0][6],info[0][7],info[0][0],info[0][10],info[0][11]) +Style.RESET_ALL)
+        print(BLUE+"[i] Notes:"+RESET)   
+        notes = self.database.get_all_notes(info[0][0])
+        if len(notes)==0:
+            print("No notes found!")
+        else:
+            for index,sha256,cmt in notes:
+                print(f'{index}) {cmt}')
 
     def print_database_structure(self):
         res = self.database.query_db("SELECT name FROM sqlite_master WHERE type='table';")
@@ -1226,16 +1296,24 @@ $adb remount
 
 ###################################################### real defs start ############################################################
 
-    def real_import(self,apk_file):
+    def real_import(self,apk_file, print_application_info=True):
         try:
             sha256 = self.guava.sha256sum(apk_file)
             if self.guava.sha256Exists(sha256):
-                print("[i] Application has already being analysed !")
+                print("[i] The application has already being analysed !")
+                self.info = self.database.get_app_info(sha256)
+                self.print_application_info(self.info)
             else:
-                self.guava.full_analysis(apk_file)
-                self.init_application_info(self.database,self.guava.sha256sum(apk_file))
+                if print_application_info:
+                    self.guava.full_analysis(apk_file)
+                    self.init_application_info(self.database,self.guava.sha256sum(apk_file))
+                else:
+                    self.guava.full_analysis(apk_file,False)
+                    self.info = self.database.get_app_info(self.guava.sha256sum(apk_file))  
+                    print(f"Package Name: {self.info[0][2]}")
         except Exception as e:
             print(e)
+            print(RED+f"There was an error loading {apk_file}"+RESET)
 
     def real_load_app(self,chosen_sha256):
         self.init_application_info(self.database,chosen_sha256)
@@ -1317,7 +1395,6 @@ $adb remount
             return ''    
 
     def init_application_info(self,application_database,app_sha256):
-
         try:
             self.info = application_database.get_app_info(app_sha256)
             self.print_application_info(self.info)
@@ -1334,6 +1411,7 @@ $adb remount
             self.strings = application_database.query_db("SELECT stringResources FROM Application WHERE sha256='{}';".format(app_sha256))[0][0].decode('utf-8')
             self.total_deep_links = []
             self.deeplinks = application_database.get_deeplinks(app_sha256)
+            self.notes = application_database.get_all_notes(app_sha256)
             self.print_deeplinks(True) #propagate the deeplink lists
             self.current_app_sha256 = app_sha256
         except Exception as e:
