@@ -2,7 +2,7 @@
 
 # Description
 
-**MEDUSA** is an extensible and modularized framework that automates processes and techniques practiced during the **dynamic analysis** **of Android Applications**.  
+**MEDUSA** is an extensible and modularized framework that automates processes and techniques practiced during the **dynamic analysis** **of Android and iOS Applications**.  
 
 # Installation
 
@@ -11,8 +11,55 @@
 3. Run the following command:
 
 ```
-$ pip install -r requirements.txt --upgrade
+$ pip install -r requirements.txt
 ```
+
+# Using Stheno (Σθενώ) with Medusa
+
+[Stheno](https://github.com/Ch0pin/stheno) is a subproject of Medusa, specifically designed for intent monitoring within this framework. Below is a quick guide on how to set up and use Stheno effectively.
+
+<p align="center">
+  <img src="https://github.com/Ch0pin/stheno/assets/4659186/fd49c39e-865b-4dc3-b2d1-59a0f4594028" alt="monitor" width="400"/>
+</p>
+
+1. **Include the Intent Module**:
+   Add the `intents/start_activity` module to your Medusa project:
+   ```bash
+   medusa> add intents/start_activity
+   ```
+
+2. **Run the Socket Server**:
+   Start the Medusa socket server to facilitate communication:
+   ```bash
+   medusa> startserver
+   ```
+
+3. **Launch Stheno**:
+   Open Stheno and navigate to the Intent Monitor menu, then click on **Start** to begin monitoring intents.
+
+## Known issues
+
+### macOS Installation
+
+During installation on macOS, you might encounter the following issue:
+
+>Readline features including tab completion have been disabled because
+no supported version of readline was found. To resolve this, install
+pyreadline3 on Windows or gnureadline on Linux/Mac.
+
+To resolve this issue on macOS, install the gnureadline package for Python:
+
+```
+pip install gnureadline
+```
+
+For Python 3.12, use the following command to install gnureadline from a specific commit:
+
+```
+pip install git+https://github.com/ludwigschwardt/python-gnureadline.git@8474e5583d4473f96b42745393c3492e2cb49224
+```
+
+
 ## Using docker
 
 You can find the docker file in the medusa/ directory. 
@@ -41,7 +88,7 @@ root@docker# adb connect device_ip:5555
 **System requirements:** 
 
 - Linux or macOS (currently medusa doesn't support windows)
-- Python 3 (Use the latest python release and not the one shiped with MacOS to avoid issues with using libedit instead of GNU's readline)
+- Python 3 (Use the latest python release and not the one shipped with macOS to avoid issues with using libedit instead of GNU's readline)
 - Rooted device or emulator 
 - adb
 - FRIDA server (running on the mobile device)
@@ -85,7 +132,7 @@ The main idea behind MEDUSA is to be able to add or remove hooks for Java or Nat
    -  Toll Fraud
    -  Sms Fraud
    
-Furthermore you can intercept Java or Native methods that belong to 3rd party apps or create complex frida modules with just few simple commands. 
+Furthermore, you can intercept Java or Native methods that belong to 3rd party apps or create complex frida modules with just few simple commands.
 
 ## Using mango.py
 
@@ -106,7 +153,7 @@ Mango is medusa's twin brother which can be used to:
 
 ### (12/2022) Using the translator script:
 1. Replace the default google_trans_new.py of you google_trans_new python package with the one from the utils/google_trans_new.py
-2. Import it with medusa>use helpers/tranlsator
+2. Import it with medusa>use helpers/translator
 
 # Contribute by:
 

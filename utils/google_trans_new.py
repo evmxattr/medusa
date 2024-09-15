@@ -118,73 +118,73 @@ LANGUAGES = {
     'zu': 'zulu',
 }
 
-DEFAULT_SERVICE_URLS = ('translate.google.ac','translate.google.ad','translate.google.ae',
-                        'translate.google.al','translate.google.am','translate.google.as',
-                        'translate.google.at','translate.google.az','translate.google.ba',
-                        'translate.google.be','translate.google.bf','translate.google.bg',
-                        'translate.google.bi','translate.google.bj','translate.google.bs',
-                        'translate.google.bt','translate.google.by','translate.google.ca',
-                        'translate.google.cat','translate.google.cc','translate.google.cd',
-                        'translate.google.cf','translate.google.cg','translate.google.ch',
-                        'translate.google.ci','translate.google.cl','translate.google.cm',
-                        'translate.google.cn','translate.google.co.ao','translate.google.co.bw',
-                        'translate.google.co.ck','translate.google.co.cr','translate.google.co.id',
-                        'translate.google.co.il','translate.google.co.in','translate.google.co.jp',
-                        'translate.google.co.ke','translate.google.co.kr','translate.google.co.ls',
-                        'translate.google.co.ma','translate.google.co.mz','translate.google.co.nz',
-                        'translate.google.co.th','translate.google.co.tz','translate.google.co.ug',
-                        'translate.google.co.uk','translate.google.co.uz','translate.google.co.ve',
-                        'translate.google.co.vi','translate.google.co.za','translate.google.co.zm',
-                        'translate.google.co.zw','translate.google.co','translate.google.com.af',
-                        'translate.google.com.ag','translate.google.com.ai','translate.google.com.ar',
-                        'translate.google.com.au','translate.google.com.bd','translate.google.com.bh',
-                        'translate.google.com.bn','translate.google.com.bo','translate.google.com.br',
-                        'translate.google.com.bz','translate.google.com.co','translate.google.com.cu',
-                        'translate.google.com.cy','translate.google.com.do','translate.google.com.ec',
-                        'translate.google.com.eg','translate.google.com.et','translate.google.com.fj',
-                        'translate.google.com.gh','translate.google.com.gi','translate.google.com.gt',
-                        'translate.google.com.hk','translate.google.com.jm','translate.google.com.kh',
-                        'translate.google.com.kw','translate.google.com.lb','translate.google.com.lc',
-                        'translate.google.com.ly','translate.google.com.mm','translate.google.com.mt',
-                        'translate.google.com.mx','translate.google.com.my','translate.google.com.na',
-                        'translate.google.com.ng','translate.google.com.ni','translate.google.com.np',
-                        'translate.google.com.om','translate.google.com.pa','translate.google.com.pe',
-                        'translate.google.com.pg','translate.google.com.ph','translate.google.com.pk',
-                        'translate.google.com.pr','translate.google.com.py','translate.google.com.qa',
-                        'translate.google.com.sa','translate.google.com.sb','translate.google.com.sg',
-                        'translate.google.com.sl','translate.google.com.sv','translate.google.com.tj',
-                        'translate.google.com.tr','translate.google.com.tw','translate.google.com.ua',
-                        'translate.google.com.uy','translate.google.com.vc','translate.google.com.vn',
-                        'translate.google.com','translate.google.cv','translate.google.cx',
-                        'translate.google.cz','translate.google.de','translate.google.dj',
-                        'translate.google.dk','translate.google.dm','translate.google.dz',
-                        'translate.google.ee','translate.google.es','translate.google.eu',
-                        'translate.google.fi','translate.google.fm','translate.google.fr',
-                        'translate.google.ga','translate.google.ge','translate.google.gf',
-                        'translate.google.gg','translate.google.gl','translate.google.gm',
-                        'translate.google.gp','translate.google.gr','translate.google.gy',
-                        'translate.google.hn','translate.google.hr','translate.google.ht',
-                        'translate.google.hu','translate.google.ie','translate.google.im',
-                        'translate.google.io','translate.google.iq','translate.google.is',
-                        'translate.google.it','translate.google.je','translate.google.jo',
-                        'translate.google.kg','translate.google.ki','translate.google.kz',
-                        'translate.google.la','translate.google.li','translate.google.lk',
-                        'translate.google.lt','translate.google.lu','translate.google.lv',
-                        'translate.google.md','translate.google.me','translate.google.mg',
-                        'translate.google.mk','translate.google.ml','translate.google.mn',
-                        'translate.google.ms','translate.google.mu','translate.google.mv',
-                        'translate.google.mw','translate.google.ne','translate.google.nf',
-                        'translate.google.nl','translate.google.no','translate.google.nr',
-                        'translate.google.nu','translate.google.pl','translate.google.pn',
-                        'translate.google.ps','translate.google.pt','translate.google.ro',
-                        'translate.google.rs','translate.google.ru','translate.google.rw',
-                        'translate.google.sc','translate.google.se','translate.google.sh',
-                        'translate.google.si','translate.google.sk','translate.google.sm',
-                        'translate.google.sn','translate.google.so','translate.google.sr',
-                        'translate.google.st','translate.google.td','translate.google.tg',
-                        'translate.google.tk','translate.google.tl','translate.google.tm',
-                        'translate.google.tn','translate.google.to','translate.google.tt',
-                        'translate.google.us','translate.google.vg','translate.google.vu','translate.google.ws')
+DEFAULT_SERVICE_URLS = ('translate.google.ac', 'translate.google.ad', 'translate.google.ae',
+                        'translate.google.al', 'translate.google.am', 'translate.google.as',
+                        'translate.google.at', 'translate.google.az', 'translate.google.ba',
+                        'translate.google.be', 'translate.google.bf', 'translate.google.bg',
+                        'translate.google.bi', 'translate.google.bj', 'translate.google.bs',
+                        'translate.google.bt', 'translate.google.by', 'translate.google.ca',
+                        'translate.google.cat', 'translate.google.cc', 'translate.google.cd',
+                        'translate.google.cf', 'translate.google.cg', 'translate.google.ch',
+                        'translate.google.ci', 'translate.google.cl', 'translate.google.cm',
+                        'translate.google.cn', 'translate.google.co.ao', 'translate.google.co.bw',
+                        'translate.google.co.ck', 'translate.google.co.cr', 'translate.google.co.id',
+                        'translate.google.co.il', 'translate.google.co.in', 'translate.google.co.jp',
+                        'translate.google.co.ke', 'translate.google.co.kr', 'translate.google.co.ls',
+                        'translate.google.co.ma', 'translate.google.co.mz', 'translate.google.co.nz',
+                        'translate.google.co.th', 'translate.google.co.tz', 'translate.google.co.ug',
+                        'translate.google.co.uk', 'translate.google.co.uz', 'translate.google.co.ve',
+                        'translate.google.co.vi', 'translate.google.co.za', 'translate.google.co.zm',
+                        'translate.google.co.zw', 'translate.google.co', 'translate.google.com.af',
+                        'translate.google.com.ag', 'translate.google.com.ai', 'translate.google.com.ar',
+                        'translate.google.com.au', 'translate.google.com.bd', 'translate.google.com.bh',
+                        'translate.google.com.bn', 'translate.google.com.bo', 'translate.google.com.br',
+                        'translate.google.com.bz', 'translate.google.com.co', 'translate.google.com.cu',
+                        'translate.google.com.cy', 'translate.google.com.do', 'translate.google.com.ec',
+                        'translate.google.com.eg', 'translate.google.com.et', 'translate.google.com.fj',
+                        'translate.google.com.gh', 'translate.google.com.gi', 'translate.google.com.gt',
+                        'translate.google.com.hk', 'translate.google.com.jm', 'translate.google.com.kh',
+                        'translate.google.com.kw', 'translate.google.com.lb', 'translate.google.com.lc',
+                        'translate.google.com.ly', 'translate.google.com.mm', 'translate.google.com.mt',
+                        'translate.google.com.mx', 'translate.google.com.my', 'translate.google.com.na',
+                        'translate.google.com.ng', 'translate.google.com.ni', 'translate.google.com.np',
+                        'translate.google.com.om', 'translate.google.com.pa', 'translate.google.com.pe',
+                        'translate.google.com.pg', 'translate.google.com.ph', 'translate.google.com.pk',
+                        'translate.google.com.pr', 'translate.google.com.py', 'translate.google.com.qa',
+                        'translate.google.com.sa', 'translate.google.com.sb', 'translate.google.com.sg',
+                        'translate.google.com.sl', 'translate.google.com.sv', 'translate.google.com.tj',
+                        'translate.google.com.tr', 'translate.google.com.tw', 'translate.google.com.ua',
+                        'translate.google.com.uy', 'translate.google.com.vc', 'translate.google.com.vn',
+                        'translate.google.com', 'translate.google.cv', 'translate.google.cx',
+                        'translate.google.cz', 'translate.google.de', 'translate.google.dj',
+                        'translate.google.dk', 'translate.google.dm', 'translate.google.dz',
+                        'translate.google.ee', 'translate.google.es', 'translate.google.eu',
+                        'translate.google.fi', 'translate.google.fm', 'translate.google.fr',
+                        'translate.google.ga', 'translate.google.ge', 'translate.google.gf',
+                        'translate.google.gg', 'translate.google.gl', 'translate.google.gm',
+                        'translate.google.gp', 'translate.google.gr', 'translate.google.gy',
+                        'translate.google.hn', 'translate.google.hr', 'translate.google.ht',
+                        'translate.google.hu', 'translate.google.ie', 'translate.google.im',
+                        'translate.google.io', 'translate.google.iq', 'translate.google.is',
+                        'translate.google.it', 'translate.google.je', 'translate.google.jo',
+                        'translate.google.kg', 'translate.google.ki', 'translate.google.kz',
+                        'translate.google.la', 'translate.google.li', 'translate.google.lk',
+                        'translate.google.lt', 'translate.google.lu', 'translate.google.lv',
+                        'translate.google.md', 'translate.google.me', 'translate.google.mg',
+                        'translate.google.mk', 'translate.google.ml', 'translate.google.mn',
+                        'translate.google.ms', 'translate.google.mu', 'translate.google.mv',
+                        'translate.google.mw', 'translate.google.ne', 'translate.google.nf',
+                        'translate.google.nl', 'translate.google.no', 'translate.google.nr',
+                        'translate.google.nu', 'translate.google.pl', 'translate.google.pn',
+                        'translate.google.ps', 'translate.google.pt', 'translate.google.ro',
+                        'translate.google.rs', 'translate.google.ru', 'translate.google.rw',
+                        'translate.google.sc', 'translate.google.se', 'translate.google.sh',
+                        'translate.google.si', 'translate.google.sk', 'translate.google.sm',
+                        'translate.google.sn', 'translate.google.so', 'translate.google.sr',
+                        'translate.google.st', 'translate.google.td', 'translate.google.tg',
+                        'translate.google.tk', 'translate.google.tl', 'translate.google.tm',
+                        'translate.google.tn', 'translate.google.to', 'translate.google.tt',
+                        'translate.google.us', 'translate.google.vg', 'translate.google.vu', 'translate.google.ws')
 
 log = logging.getLogger(__name__)
 log.addHandler(logging.NullHandler())
@@ -215,10 +215,10 @@ class google_new_transError(Exception):
         if rsp is None:
             premise = "Failed to connect"
 
-            return "{}. Probable cause: {}".format(premise, "timeout")
+            return f"{premise}. Probable cause: timeout"
             # if tts.tld != 'com':
             #     host = _translate_url(tld=tts.tld)
-            #     cause = "Host '{}' is not reachable".format(host)
+            #     cause = f"Host '{host}' is not reachable"
 
         else:
             status = rsp.status_code
@@ -229,15 +229,15 @@ class google_new_transError(Exception):
             if status == 403:
                 cause = "Bad token or upstream API changes"
             elif status == 200 and not tts.lang_check:
-                cause = "No audio stream in response. Unsupported language '%s'" % self.tts.lang
+                cause = f"No audio stream in response. Unsupported language '{self.tts.lang}'"
             elif status >= 500:
-                cause = "Uptream API error. Try again later."
+                cause = "Upstream API error. Try again later."
 
-        return "{}. Probable cause: {}".format(premise, cause)
+        return f"{premise}. Probable cause: {cause}"
 
 
 class google_translator:
-    '''
+    """
     You can use 108 language in target and source,details view LANGUAGES.
     Target language: like 'en'、'zh'、'th'...
 
@@ -263,8 +263,7 @@ class google_translator:
 
     :param proxies: proxies Will be used for every request.
     :type proxies: class : dict; like: {'http': 'http:171.112.169.47:19934/', 'https': 'https:171.112.169.47:19934/'}
-
-    '''
+    """
 
     def __init__(self, url_suffix="com", timeout=5, proxies=None):
         self.proxies = proxies
@@ -272,7 +271,7 @@ class google_translator:
             self.url_suffix = URL_SUFFIX_DEFAULT
         else:
             self.url_suffix = url_suffix
-        url_base = "https://translate.google.{}".format(self.url_suffix)
+        url_base = f"https://translate.google.{self.url_suffix}"
         self.url = url_base + "/_/TranslateWebserverUi/data/batchexecute"
         self.timeout = timeout
 
@@ -283,26 +282,28 @@ class google_translator:
         rpc = [[[random.choice(GOOGLE_TTS_RPC), escaped_parameter, None, "generic"]]]
         espaced_rpc = json.dumps(rpc, separators=(',', ':'))
         # text_urldecode = quote(text.strip())
-        freq_initial = "f.req={}&".format(quote(espaced_rpc))
+        freq_initial = f"f.req={quote(espaced_rpc)}&"
         freq = freq_initial
         return freq
 
     def translate(self, text, lang_tgt='auto', lang_src='auto', pronounce=False):
         try:
             lang = LANGUAGES[lang_src]
-        except:
+        except KeyError:
             lang_src = 'auto'
+
         try:
             lang = LANGUAGES[lang_tgt]
-        except:
+        except KeyError:
             lang_src = 'auto'
+
         text = str(text)
         if len(text) >= 5000:
             return "Warning: Can only detect less than 5000 characters"
         if len(text) == 0:
             return ""
         headers = {
-            "Referer": "http://translate.google.{}/".format(self.url_suffix),
+            "Referer": f"http://translate.google.{self.url_suffix}/",
             "User-Agent":
                 "Mozilla/5.0 (Windows NT 10.0; WOW64) "
                 "AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -316,7 +317,7 @@ class google_translator:
                                     headers=headers,
                                     )
         try:
-            if self.proxies == None or type(self.proxies) != dict:
+            if self.proxies is None or not isinstance(self.proxies, dict):
                 self.proxies = {}
             with requests.Session() as s:
                 s.proxies = self.proxies
@@ -336,20 +337,20 @@ class google_translator:
                         if len(response) == 1:
                             if len(response[0]) > 5:
                                 sentences = response[0][5]
-                            else: ## only url
+                            else:  ## only url
                                 sentences = response[0][0]
-                                if pronounce == False:
+                                if not pronounce:
                                     return sentences
-                                elif pronounce == True:
-                                    return [sentences,None,None]
+                                elif pronounce:
+                                    return [sentences, None, None]
                             translate_text = ""
                             for sentence in sentences:
                                 sentence = sentence[0]
                                 translate_text += sentence.strip() + ' '
                             translate_text = translate_text
-                            if pronounce == False:
+                            if not pronounce:
                                 return translate_text
-                            elif pronounce == True:
+                            elif pronounce:
                                 pronounce_src = (response_[0][0])
                                 pronounce_tgt = (response_[1][0][0][1])
                                 return [translate_text, pronounce_src, pronounce_tgt]
@@ -357,9 +358,9 @@ class google_translator:
                             sentences = []
                             for i in response:
                                 sentences.append(i[0])
-                            if pronounce == False:
+                            if not pronounce:
                                 return sentences
-                            elif pronounce == True:
+                            elif pronounce:
                                 pronounce_src = (response_[0][0])
                                 pronounce_tgt = (response_[1][0][0][1])
                                 return [sentences, pronounce_src, pronounce_tgt]
@@ -368,10 +369,10 @@ class google_translator:
             r.raise_for_status()
         except requests.exceptions.ConnectTimeout as e:
             raise e
-        except requests.exceptions.HTTPError as e:
+        except requests.exceptions.HTTPError:
             # Request successful, bad response
             raise google_new_transError(tts=self, response=r)
-        except requests.exceptions.RequestException as e:
+        except requests.exceptions.RequestException:
             # Request failed
             raise google_new_transError(tts=self)
 
@@ -382,7 +383,7 @@ class google_translator:
         if len(text) == 0:
             return ""
         headers = {
-            "Referer": "http://translate.google.{}/".format(self.url_suffix),
+            "Referer": f"http://translate.google.{self.url_suffix}/",
             "User-Agent":
                 "Mozilla/5.0 (Windows NT 10.0; WOW64) "
                 "AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -395,7 +396,7 @@ class google_translator:
                                     data=freq,
                                     headers=headers)
         try:
-            if self.proxies == None or type(self.proxies) != dict:
+            if self.proxies is None or not isinstance(self.proxies, dict):
                 self.proxies = {}
             with requests.Session() as s:
                 s.proxies = self.proxies

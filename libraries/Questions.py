@@ -1,4 +1,4 @@
-class Alternative():
+class Alternative:
 	def __init__(self, message, *args):
 		self.message = message
 		self.choices = args
@@ -9,7 +9,8 @@ class Alternative():
 			return self.ask()
 		return answer
 
-class Numeric():
+
+class Numeric:
 	def __init__(self, message, base=10, lbound=None, ubound=None):
 		self.message = message
 		self.base = base
@@ -29,23 +30,25 @@ class Numeric():
 		except ValueError:
 			return self.ask()
 
-class Polar():
+
+class Polar:
 	def __init__(self, message, default=True):
 		self.message = message
 		self.default = default
 
 	def ask(self):
 		answer = input(self.message + (' (Y/n) ' if self.default else ' (y/N) ')).strip()
-		if answer.lower() == 'y' or answer.lower() == 'yes':
+		if answer.lower() in ['y', 'yes']:
 			return True
-		elif answer.lower() == 'n' or answer.lower() == 'no':
+		elif answer.lower() in ['n', 'no']:
 			return False
 		elif answer == '':
 			return True if self.default else False
 		else:
 			return self.ask()
 
-class Open():
+
+class Open:
 	def __init__(self, message):
 		self.message = message
 

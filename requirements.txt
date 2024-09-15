@@ -1,10 +1,11 @@
-androguard==3.3.5
+frida
+frida-tools
+androguard
+requests
+apkInspector
+cmd2
 click==8.0.3
-cmd2==2.3.3
 colorama==0.4.5
-frida==16.0.2
 pick==2.2.0
 PyYAML==6.0.1
-requests==2.25.1
-urllib3==1.26.8
-google_trans_new
+urllib3==1.26.19
